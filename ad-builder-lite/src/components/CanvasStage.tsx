@@ -59,21 +59,21 @@ function Btn({ el, eventProps, nodeRef }: { el: ButtonEl; eventProps: EventProps
 }
 
 function Draggable({
-  el,
-  onAttachNode,
-}: {
-  el: AnyEl;
-  onAttachNode: (node: any | null) => void;
-}) {
-  const select = useEditorStore((s) => s.select);
-  const update = useEditorStore((s) => s.updateElement);
-  const isSelected = useEditorStore((s) => s.selectedId === el.id);
+    el,
+    onAttachNode,
+    }: {
+    el: AnyEl;
+    onAttachNode: (node: any | null) => void;
+    }) {
+    const select = useEditorStore((s) => s.select);
+    const update = useEditorStore((s) => s.updateElement);
+    const isSelected = useEditorStore((s) => s.selectedId === el.id);
+            
+    const nodeRef = useRef<any>(null);
 
-  const nodeRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (isSelected) onAttachNode(nodeRef.current);
-  }, [isSelected, onAttachNode]);
+    useEffect(() => {
+        if (isSelected) onAttachNode(nodeRef.current);
+    }, [isSelected, onAttachNode]);
 
   const eventProps: EventProps = {
     draggable: true,
@@ -81,25 +81,25 @@ function Draggable({
     onTap: () => select(el.id),
     onDragEnd: (e: any) => update(el.id, { x: e.target.x(), y: e.target.y() } as any),
     onTransformEnd: (e: any) => {
-      const n = e.target;
-      // capture scale + normalize back to 1 so width/height store real size
-      const scaleX = n.scaleX();
-      const scaleY = n.scaleY();
-      const newW = Math.max(5, (el.width || 0) * scaleX);
-      const newH = Math.max(5, (el.height || 0) * scaleY);
+        const n = e.target;
+        // capture scale + normalize back to 1 so width/height store real size
+        const scaleX = n.scaleX();
+        const scaleY = n.scaleY();
+        const newW = Math.max(5, (el.width || 0) * scaleX);
+        const newH = Math.max(5, (el.height || 0) * scaleY);
 
-      // write back size/pos/rotation
-      update(el.id, {
-        x: n.x(),
-        y: n.y(),
-        width: newW,
-        height: newH,
-        rotation: n.rotation(),
-      } as any);
+        // write back size/pos/rotation
+        update(el.id, {
+            x: n.x(),
+            y: n.y(),
+            width: newW,
+            height: newH,
+            rotation: n.rotation(),
+        } as any);
 
-      // reset runtime scale to keep transformer consistent
-      n.scaleX(1);
-      n.scaleY(1);
+        // reset runtime scale to keep transformer consistent
+        n.scaleX(1);
+        n.scaleY(1);
     },
   };
 
