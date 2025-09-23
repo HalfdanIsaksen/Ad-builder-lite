@@ -129,11 +129,20 @@ function Draggable({
 }
 
 export default function CanvasStage() {
-  const { elements, select, selectedId } = useEditorStore();
+  const { elements, select, selectedId, addImageFromFile } = useEditorStore();
   const size = useCanvasSize();
 
   const transformerRef = useRef<any>(null);
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
+  // drag & drop image files to add
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+  const onDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
+    if (files[0]) await addImageFromFile(files[0]);
+  };
 
   // Attach the selected Konva node to the Transformer
   useEffect(() => {
@@ -159,7 +168,7 @@ export default function CanvasStage() {
   );
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-neutral-100">
+    <div className="flex-1 flex items-center justify-center bg-neutral-100" onDragOver={onDragOver} onDrop={onDrop}>
       <div className="border border-neutral-300 bg-white shadow-sm" style={{ width: size.w, height: size.h }}>
         <Stage
           width={size.w}
