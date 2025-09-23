@@ -1,15 +1,22 @@
 import { useEditorStore } from '../store/useEditorStore';
 import type { AnyEl } from '../Types';
-import { useMemo } from 'react';
+import { useMemo, useCallback, useRef } from 'react';
 
-export default function Inspector() { 
-    const { elements, selectedId, updateElement, removeElement } = useEditorStore();
+export default function Inspector() {
+    const { elements, selectedId, updateElement, removeElement, replaceImageFromFile } = useEditorStore();
     const el = useMemo<AnyEl | undefined>(() => elements.find((e) => e.id === selectedId), [elements, selectedId]);
+
+    const fileRef = useRef<HTMLInputElement>(null);
+    const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const f = e.target.files?.[0];
+        if (f && el) replaceImageFromFile(el.id, f);
+        e.currentTarget.value = '';
+    };
 
     if (!el) {
         return (
             <aside className="w-72 p-3 border-l border-neutral-200 bg-white">
-            <div className="text-sm text-neutral-500">Select an element to edit.</div>
+                <div className="text-sm text-neutral-500">Select an element to edit.</div>
             </aside>
         );
     }
@@ -52,19 +59,21 @@ export default function Inspector() {
                 <div className="space-y-2">
                     <label className="label">Image URL</label>
                     <input className="input" value={(el as any).src} onChange={onStr('src' as any)} />
+                    <button className="btn" onClick={() => fileRef.current?.click()}>Replace from file…</button>
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
                 </div>
             )}
 
             {el.type === 'button' && (
                 <div className="space-y-2">
-                <label className="label">Label</label>
-                <input className="input" value={(el as any).label} onChange={onStr('label' as any)} />
-                <label className="label">Link</label>
-                <input className="input" value={(el as any).href ?? ''} onChange={onStr('href' as any)} />
-                <label className="label">Fill</label>
-                <input className="input" value={(el as any).fill ?? '#2563eb'} onChange={onStr('fill' as any)} />
-                <label className="label">Text Color</label>
-                <input className="input" value={(el as any).textColor ?? '#fff'} onChange={onStr('textColor' as any)} />
+                    <label className="label">Label</label>
+                    <input className="input" value={(el as any).label} onChange={onStr('label' as any)} />
+                    <label className="label">Link</label>
+                    <input className="input" value={(el as any).href ?? ''} onChange={onStr('href' as any)} />
+                    <label className="label">Fill</label>
+                    <input className="input" value={(el as any).fill ?? '#2563eb'} onChange={onStr('fill' as any)} />
+                    <label className="label">Text Color</label>
+                    <input className="input" value={(el as any).textColor ?? '#fff'} onChange={onStr('textColor' as any)} />
                 </div>
             )}
         </aside>
