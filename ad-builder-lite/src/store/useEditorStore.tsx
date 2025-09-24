@@ -16,6 +16,7 @@ type Actions = {
     addElement: (type: ElementType, init?: Partial<AnyEl>) => void;
     addImageFromFile: (file: File) => Promise<void>;
     replaceImageFromFile: (id: string, file: File) => Promise<void>;
+    replaceButtonBgFromFile: (id: string, file: File) => Promise<void>;
     updateElement: (id: string, patch: Partial<AnyEl>) => void;
     removeElement: (id: string) => void;
     select: (id: string | null) => void;
@@ -40,7 +41,7 @@ export const useEditorStore = create<State & Actions>()(
                 } else if (type === 'image') {
                     el = { ...common, type: 'image', src: 'https://picsum.photos/400/240' } as AnyEl;
                 } else {
-                    el = { ...common, type: 'button', label: 'Click me', fill: '#2563eb', textColor: '#fff', width: 160, height: 48 } as AnyEl;
+                    el = { ...common, type: 'button', label: 'Click me', fill: '#2563eb', textColor: '#fff', width: 160, height: 48, bgType: 'solid', imageFit: 'cover', } as AnyEl;
                 }
                 return { elements: [...s.elements, { ...el, ...(init as any) }], selectedId: (el as AnyEl).id };
             }),
@@ -66,6 +67,16 @@ export const useEditorStore = create<State & Actions>()(
             replaceImageFromFile: async (id, file) => {
                 const dataUrl = await fileToDataURL(file);
                 set((s) => ({ elements: s.elements.map((e) => (e.id === id ? { ...e, src: dataUrl } : e)) }));
+            },
+            replaceButtonBgFromFile: async (id, file) => {
+                const dataUrl = await fileToDataURL(file);
+                set((s) => ({
+                    elements: s.elements.map((e) =>
+                        e.id === id && (e as any).type === 'button'
+                            ? { ...(e as any), bgType: 'image', bgImageSrc: dataUrl }
+                            : e
+                    ),
+                }));
             },
 
             updateElement: (id, patch) => set((s) => ({
