@@ -3,7 +3,7 @@ import type { AnyEl } from '../Types';
 import { useMemo, useCallback, useRef } from 'react';
 
 export default function Inspector() {
-    const { elements, selectedId, updateElement, removeElement, replaceImageFromFile } = useEditorStore();
+    const { elements, selectedId, updateElement, removeElement, replaceImageFromFile, replaceButtonBgFromFile } = useEditorStore();
     const el = useMemo<AnyEl | undefined>(() => elements.find((e) => e.id === selectedId), [elements, selectedId]);
 
     const fileRef = useRef<HTMLInputElement>(null);
@@ -66,6 +66,53 @@ export default function Inspector() {
 
             {el.type === 'button' && (
                 <div className="space-y-2">
+                    <label className="label">Background</label>
+                    <select
+                        className="input"
+                        value={(el as any).bgType ?? 'solid'}
+                        onChange={(e) => updateElement(el.id, { bgType: e.target.value as any })}
+                    >
+                        <option value="solid">Solid</option>
+                        <option value="image">Image</option>
+                    </select>
+
+                    {((el as any).bgType ?? 'solid') === 'image' ? (
+                        <>
+                            <label className="label">Image URL</label>
+                            <input
+                                className="input"
+                                value={(el as any).bgImageSrc ?? ''}
+                                onChange={(e) => updateElement(el.id, { bgImageSrc: e.target.value } as any)}
+                            />
+                            <label className="label">Fit</label>
+                            <select
+                                className="input"
+                                value={(el as any).imageFit ?? 'cover'}
+                                onChange={(e) => updateElement(el.id, { imageFit: e.target.value as any })}
+                            >
+                                <option value="cover">Cover</option>
+                                <option value="contain">Contain</option>
+                                <option value="stretch">Stretch</option>
+                            </select>
+                            <button className="btn" onClick={() => fileRef.current?.click()}>Upload image…</button>
+                            <input
+                                ref={fileRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const f = e.target.files?.[0];
+                                    if (f) replaceButtonBgFromFile(el.id, f);
+                                    (e.target as HTMLInputElement).value = '';
+                                }}
+                            />
+                        </>
+                    ) : (
+                        <>
+                            <label className="label">Fill</label>
+                            <input className="input" value={(el as any).fill ?? '#2563eb'} onChange={onStr('fill' as keyof AnyEl)} />
+                        </>
+                    )}
                     <label className="label">Label</label>
                     <input className="input" value={(el as any).label} onChange={onStr('label' as any)} />
                     <label className="label">Link</label>

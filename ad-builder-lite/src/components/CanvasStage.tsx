@@ -32,6 +32,44 @@ function Img({ el, eventProps, nodeRef }: { el: ImageEl; eventProps: EventProps;
 }
 
 function Btn({ el, eventProps, nodeRef }: { el: ButtonEl; eventProps: EventProps; nodeRef: any }) {
+  const [bgImg] = useImage(el.bgImageSrc || '', 'anonymous');
+
+  // rounded clip for the whole button (so image respects corner radius)
+  const radius = 12;
+  const clipRounded = (ctx: any) => {
+    const w = el.width, h = el.height, r = Math.min(radius, Math.min(w, h) / 2);
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.arcTo(w, 0, w, h, r);
+    ctx.arcTo(w, h, 0, h, r);
+    ctx.arcTo(0, h, 0, 0, r);
+    ctx.arcTo(0, 0, w, 0, r);
+    ctx.closePath();
+  };
+
+  // compute fitted image rect inside button
+  let imgX = 0, imgY = 0, imgW = el.width, imgH = el.height;
+  if (bgImg && el.bgType === 'image' && bgImg.width && bgImg.height) {
+    const sx = el.width / bgImg.width;
+    const sy = el.height / bgImg.height;
+    if (el.imageFit === 'contain') {
+      const s = Math.min(sx, sy);
+      imgW = bgImg.width * s;
+      imgH = bgImg.height * s;
+      imgX = (el.width - imgW) / 2;
+      imgY = (el.height - imgH) / 2;
+    } else if (el.imageFit === 'cover') {
+      const s = Math.max(sx, sy);
+      imgW = bgImg.width * s;
+      imgH = bgImg.height * s;
+      imgX = (el.width - imgW) / 2;
+      imgY = (el.height - imgH) / 2;
+    } else {
+      // 'stretch' (default): fill rect
+      imgW = el.width; imgH = el.height; imgX = 0; imgY = 0;
+    }
+  }
+
   return (
     <Group
       ref={nodeRef}
@@ -40,9 +78,14 @@ function Btn({ el, eventProps, nodeRef }: { el: ButtonEl; eventProps: EventProps
       opacity={el.opacity ?? 1}
       rotation={el.rotation ?? 0}
       listening
+      clipFunc={clipRounded}
       {...eventProps}
     >
-      <Rect width={el.width} height={el.height} fill={el.fill ?? '#2563eb'} cornerRadius={12} />
+      {el.bgType === 'image' && bgImg ? (
+        <KImage image={bgImg as any} x={imgX} y={imgY} width={imgW} height={imgH} />
+      ) : (
+        <Rect width={el.width} height={el.height} fill={el.fill ?? '#2563eb'} />
+      )}
       <Text
         text={el.label}
         fill={el.textColor ?? '#fff'}
