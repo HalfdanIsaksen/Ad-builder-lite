@@ -26,8 +26,8 @@ Perfect for marketers, designers, or anyone looking to automate and scale creati
 ## 🧰 Tech Stack
 
 - **Frontend:** React + TypeScript
-- 
-- 
+- **Canvas Layer:** Konva
+- **State Management:** Zustand
 - **Styling:** Tailwind CSS
 - 
 - 
