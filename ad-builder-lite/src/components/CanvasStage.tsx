@@ -5,7 +5,7 @@ import { useEditorStore } from '../store/useEditorStore';
 //import type { AnyEl, ButtonEl, ImageEl, TextEl } from '../Types';
 import { useCanvasSize } from './ResponsiveBar';
 import Draggable from './Draggable';
-
+/*Might be useful later else delete
 type EventProps = {
   draggable: boolean;
   onMouseDown: (e: any) => void;
@@ -14,7 +14,7 @@ type EventProps = {
   onTransformEnd: (e: any) => void;
 };
 
-/*Might be useful later else delete
+
 function Img({ el, eventProps, nodeRef }: { el: ImageEl; eventProps: EventProps; nodeRef: any }) {
   const [img] = useImage(el.src, 'anonymous');
   return (
