@@ -177,6 +177,7 @@ export default function CanvasStage() {
 
   const transformerRef = useRef<any>(null);
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
+
   // drag & drop image files to add
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
