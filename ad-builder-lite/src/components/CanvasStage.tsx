@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Stage, Layer, Rect, Text, Image as KImage, Group, Transformer } from 'react-konva';
-import useImage from 'use-image';
+//import useImage from 'use-image';
 import { useEditorStore } from '../store/useEditorStore';
-import type { AnyEl, ButtonEl, ImageEl, TextEl } from '../Types';
+//import type { AnyEl, ButtonEl, ImageEl, TextEl } from '../Types';
 import { useCanvasSize } from './ResponsiveBar';
 import Draggable from './Draggable';
 
