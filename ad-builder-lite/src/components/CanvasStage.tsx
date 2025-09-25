@@ -4,6 +4,7 @@ import useImage from 'use-image';
 import { useEditorStore } from '../store/useEditorStore';
 import type { AnyEl, ButtonEl, ImageEl, TextEl } from '../Types';
 import { useCanvasSize } from './ResponsiveBar';
+import Draggable from './Draggable';
 
 type EventProps = {
   draggable: boolean;
@@ -13,6 +14,7 @@ type EventProps = {
   onTransformEnd: (e: any) => void;
 };
 
+/*Might be useful later else delete
 function Img({ el, eventProps, nodeRef }: { el: ImageEl; eventProps: EventProps; nodeRef: any }) {
   const [img] = useImage(el.src, 'anonymous');
   return (
@@ -169,50 +171,47 @@ function Draggable({
   if (el.type === 'button') return <Btn el={el as ButtonEl} eventProps={eventProps} nodeRef={nodeRef} />;
 
   return null;
-}
+}*/
 
 export default function CanvasStage() {
   const { elements, select, selectedId, addImageFromFile } = useEditorStore();
   const size = useCanvasSize();
 
+  // 1) Choose a canonical “design” space (keep your data in these units)
+  const DESIGN = { w: 970, h: 250 }; // 👈 match your desktop preset
+
+  // 2) Compute scale from design -> current preset
+  const sx = size.w / DESIGN.w;
+  const sy = size.h / DESIGN.h;
+
   const transformerRef = useRef<any>(null);
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
 
-  // drag & drop image files to add
-  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
   const onDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
     if (files[0]) await addImageFromFile(files[0]);
   };
 
-  // Attach the selected Konva node to the Transformer
   useEffect(() => {
     const tr = transformerRef.current;
     if (!tr) return;
-    if (selectedNode) {
-      tr.nodes([selectedNode]);
-    } else {
-      tr.nodes([]);
-    }
+    tr.nodes(selectedNode ? [selectedNode] : []);
     tr.getLayer()?.batchDraw();
   }, [selectedNode, selectedId, elements]);
 
-  // constrain min size and allow only corner handles
   const boundBoxFunc = useMemo(
     () => (oldBox: any, newBox: any) => {
       const MIN_SIZE = 10;
-      const w = Math.max(MIN_SIZE, newBox.width);
-      const h = Math.max(MIN_SIZE, newBox.height);
-      return { ...newBox, width: w, height: h };
+      return { ...newBox, width: Math.max(MIN_SIZE, newBox.width), height: Math.max(MIN_SIZE, newBox.height) };
     },
     []
   );
 
   return (
     <div className="flex-1 flex items-center justify-center bg-neutral-100" onDragOver={onDragOver} onDrop={onDrop}>
+      {/* Outer frame uses the preset's pixel size */}
       <div className="border border-neutral-300 bg-white shadow-sm" style={{ width: size.w, height: size.h }}>
         <Stage
           width={size.w}
@@ -231,17 +230,24 @@ export default function CanvasStage() {
           }}
         >
           <Layer>
-            {elements.map((el) => (
-              <Draggable key={el.id} el={el} onAttachNode={(n) => setSelectedNode(n)} />
-            ))}
+            {/* Root group scales design space -> preset space */}
+            <Group x={0} y={0} scaleX={sx} scaleY={sy}>
+              {elements.map((el) => (
+                <Draggable
+                  key={el.id}
+                  el={el}
+                  onAttachNode={(n) => setSelectedNode(n)}
+                  parentScaleX={sx}
+                  parentScaleY={sy}
+                />
+              ))}
+            </Group>
 
-            {/* Selection transformer */}
             {selectedId && (
               <Transformer
                 ref={transformerRef}
-                // show only corner anchors for scaling
                 enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
-                rotateEnabled={true}
+                rotateEnabled
                 flipEnabled={false}
                 boundBoxFunc={boundBoxFunc}
                 anchorSize={8}
