@@ -7,11 +7,6 @@ Perfect for marketers, designers, or anyone looking to automate and scale creati
 
 ---
 
-## 🚀 Live Demo
-
-👉 
----
-
 ## 🛠️ Features
 
 - ✏️ Drag-and-drop editor for ad components (text, images, buttons)
@@ -29,16 +24,6 @@ Perfect for marketers, designers, or anyone looking to automate and scale creati
 - **Canvas Layer:** Konva
 - **State Management:** Zustand
 - **Styling:** Tailwind CSS
-- 
-- 
-
----
-
-## 📸 Screenshots
-
-**
-
----
 
 
 
