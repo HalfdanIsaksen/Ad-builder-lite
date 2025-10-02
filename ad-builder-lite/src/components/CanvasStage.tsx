@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Stage, Layer, Rect, Text, Image as KImage, Group, Transformer } from 'react-konva';
+import { Stage, Layer, Group, Transformer } from 'react-konva';
 //import useImage from 'use-image';
 import { useEditorStore } from '../store/useEditorStore';
 //import type { AnyEl, ButtonEl, ImageEl, TextEl } from '../Types';
@@ -204,6 +204,7 @@ export default function CanvasStage() {
   const boundBoxFunc = useMemo(
     () => (oldBox: any, newBox: any) => {
       const MIN_SIZE = 10;
+      if (newBox.width < MIN_SIZE || newBox.height < MIN_SIZE) return oldBox;
       return { ...newBox, width: Math.max(MIN_SIZE, newBox.width), height: Math.max(MIN_SIZE, newBox.height) };
     },
     []

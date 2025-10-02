@@ -146,7 +146,7 @@ export async function exportHTML5Banner(
         }
     }
 
-    const html = String.raw`<!DOCTYPE html>
+const html = String.raw`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />

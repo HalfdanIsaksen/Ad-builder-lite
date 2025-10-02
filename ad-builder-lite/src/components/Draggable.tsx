@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import  { useEffect, useRef } from 'react';
 import { Text, Image as KImage, Group, Rect } from 'react-konva';
 import useImage from 'use-image';
 import { useEditorStore } from '../store/useEditorStore';
