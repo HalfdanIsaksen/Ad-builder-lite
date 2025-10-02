@@ -1,6 +1,6 @@
 import { useEditorStore } from '../store/useEditorStore';
 import type { AnyEl } from '../Types';
-import { useMemo, useCallback, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
 export default function Inspector() {
     const { elements, selectedId, updateElement, removeElement, replaceImageFromFile, replaceButtonBgFromFile } = useEditorStore();

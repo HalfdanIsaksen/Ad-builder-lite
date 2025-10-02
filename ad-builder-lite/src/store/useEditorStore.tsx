@@ -26,7 +26,7 @@ type Actions = {
 
 export const useEditorStore = create<State & Actions>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             elements: [],
             selectedId: null,
             preset: 'desktop',
