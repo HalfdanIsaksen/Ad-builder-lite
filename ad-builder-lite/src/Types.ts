@@ -24,9 +24,9 @@ export type ImageEl = {
   opacity?: number;
   visible?: boolean;
   src: string;
-  imageFit?: 'cover' | 'contain' | 'stretch'; // NEW
-  naturalW?: number;                           // NEW
-  naturalH?: number;                           // NEW
+  imageFit?: 'cover' | 'contain' | 'stretch'; 
+  naturalW?: number;                           
+  naturalH?: number;                           
 };
 
 export type ButtonEl = BaseEl & {
