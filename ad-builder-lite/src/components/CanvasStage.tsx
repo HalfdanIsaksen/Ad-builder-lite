@@ -256,8 +256,7 @@ export default function CanvasStage() {
                   key={el.id}
                   el={el}
                   onAttachNode={(n) => setSelectedNode(n)}
-                  parentScaleX={sx}
-                  parentScaleY={sy}
+                  
                 />
               ))}
             </Group>

@@ -15,13 +15,9 @@ type EventProps = {
 export default function Draggable({
   el,
   onAttachNode,
-  parentScaleX,
-  parentScaleY,
 }: {
   el: AnyEl;
   onAttachNode: (node: any | null) => void;
-  parentScaleX: number;
-  parentScaleY: number;
 }) {
   const select = useEditorStore((s) => s.select);
   const update = useEditorStore((s) => s.updateElement);
@@ -42,8 +38,8 @@ export default function Draggable({
     onDragEnd: (e: any) => {
       const n = e.target;
       update(el.id, {
-        x: n.x() / parentScaleX,
-        y: n.y() / parentScaleY,
+        x: n.x(),
+        y: n.y(),
       } as any);
     },
 
@@ -57,8 +53,8 @@ export default function Draggable({
       const newH = Math.max(5, (el.height || 0) * scaleY);
 
       update(el.id, {
-        x: n.x() / parentScaleX,
-        y: n.y() / parentScaleY,
+        x: n.x(),
+        y: n.y(),
         width: newW,
         height: newH,
         rotation: n.rotation(),
