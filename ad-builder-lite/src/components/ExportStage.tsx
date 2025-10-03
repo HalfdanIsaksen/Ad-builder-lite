@@ -18,7 +18,6 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
   const [clickUrl, setClickUrl] = useState<string>('https://example.com');
   const [title, setTitle] = useState<string>('Ad Builder Banner');
 
-  // Optional filename fields (only used if your exporters accept them)
   const [htmlFilename, setHtmlFilename] = useState<string>('banner');
   const [jsonFilename, setJsonFilename] = useState<string>('ad-builder');
 
@@ -49,8 +48,6 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
       setBusy(true);
 
       if (tab === 'html') {
-        // If your exporter supports filename, you can pass it via options (example below).
-        // If not, ignore htmlFilename or add support inside ../utils/exporters.
         await exportHTML5Banner(elements, preset, {
           clickUrl,
           title,
