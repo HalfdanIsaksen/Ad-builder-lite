@@ -50,13 +50,30 @@ export const useEditorStore = create<State & Actions>()(
                 const img = new Image();
                 const id = uid();
                 img.onload = () => {
-                    const w = Math.min(img.naturalWidth, 400);
-                    const scale = w / img.naturalWidth;
-                    const h = img.naturalHeight * scale;
+                    const naturalW = img.naturalWidth;
+                    const naturalH = img.naturalHeight;
+
+                    const maxW = 400;
+                    const w = Math.min(naturalW, maxW);
+                    const h = Math.round((naturalH / naturalW) * w);
+
                     set((s) => ({
                         elements: [
                             ...s.elements,
-                            { id, type: 'image', x: 40, y: 40, width: w, height: h, src: dataUrl, opacity: 1, visible: true } as any,
+                            {
+                                id,
+                                type: 'image',
+                                x: 40,
+                                y: 40,
+                                width: w,
+                                height: h,
+                                src: dataUrl,
+                                opacity: 1,
+                                visible: true,
+                                imageFit: 'cover', // default like CSS background
+                                naturalW,
+                                naturalH,
+                            } as any,
                         ],
                         selectedId: id,
                     }));
@@ -64,9 +81,22 @@ export const useEditorStore = create<State & Actions>()(
                 img.src = dataUrl;
             },
 
+
             replaceImageFromFile: async (id, file) => {
                 const dataUrl = await fileToDataURL(file);
-                set((s) => ({ elements: s.elements.map((e) => (e.id === id ? { ...e, src: dataUrl } : e)) }));
+                const img = new Image();
+                img.onload = () => {
+                    const naturalW = img.naturalWidth;
+                    const naturalH = img.naturalHeight;
+                    set((s) => ({
+                        elements: s.elements.map((e) =>
+                            e.id === id
+                                ? { ...e, src: dataUrl, naturalW, naturalH }
+                                : e
+                        ),
+                    }));
+                };
+                img.src = dataUrl;
             },
             replaceButtonBgFromFile: async (id, file) => {
                 const dataUrl = await fileToDataURL(file);

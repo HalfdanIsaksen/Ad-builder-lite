@@ -1,4 +1,4 @@
-import  { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Text, Image as KImage, Group, Rect } from 'react-konva';
 import useImage from 'use-image';
 import { useEditorStore } from '../store/useEditorStore';
@@ -93,21 +93,65 @@ export default function Draggable({
   if (el.type === 'image') {
     const i = el as ImageEl;
     const [img] = useImage(i.src, 'anonymous');
+
+    const frameRef = nodeRef;
+
+    // Compute object-fit sizing each render
+    let drawX = 0, drawY = 0, drawW = i.width, drawH = i.height;
+
+    const natW = i.naturalW ?? img?.width ?? 1;
+    const natH = i.naturalH ?? img?.height ?? 1;
+
+    if (img && natW > 0 && natH > 0) {
+      const sx = i.width / natW;
+      const sy = i.height / natH;
+
+      if ((i.imageFit ?? 'cover') === 'contain') {
+        const s = Math.min(sx, sy);
+        drawW = Math.round(natW * s);
+        drawH = Math.round(natH * s);
+        drawX = Math.round((i.width - drawW) / 2);
+        drawY = Math.round((i.height - drawH) / 2);
+      } else if ((i.imageFit ?? 'cover') === 'cover') {
+        const s = Math.max(sx, sy);
+        drawW = Math.round(natW * s);
+        drawH = Math.round(natH * s);
+        drawX = Math.round((i.width - drawW) / 2);
+        drawY = Math.round((i.height - drawH) / 2);
+        // parts outside the frame will be clipped by Group below
+      } else {
+        // 'stretch' (fill the frame regardless of aspect ratio)
+        drawW = i.width;
+        drawH = i.height;
+        drawX = 0;
+        drawY = 0;
+      }
+    }
+
+    // Clip the image to the frame rect so 'cover' doesn't spill out
+    const clipRect = (ctx: any) => {
+      ctx.beginPath();
+      ctx.rect(0, 0, i.width, i.height);
+      ctx.closePath();
+    };
+
     return (
-      <KImage
-        ref={nodeRef}
-        image={img as any}
+      <Group
+        ref={frameRef}
         x={i.x}
         y={i.y}
-        width={i.width}
-        height={i.height}
         opacity={i.opacity ?? 1}
         rotation={i.rotation ?? 0}
+        clipFunc={clipRect}
         listening
         {...eventProps}
-      />
+      >
+        <KImage image={img as any} x={drawX} y={drawY} width={drawW} height={drawH} />
+      </Group>
     );
   }
+
+
 
   if (el.type === 'button') {
     const b = el as ButtonEl;
