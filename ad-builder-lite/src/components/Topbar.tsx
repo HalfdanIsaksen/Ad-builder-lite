@@ -42,7 +42,7 @@ export default function Topbar() {
           </button>
 
           {/* Unified Export button -> opens modal */}
-          <button className="btn-primary" onClick={() => setExportOpen(true)}>
+          <button className="btn" onClick={() => setExportOpen(true)}>
             Export
           </button>
         </div>

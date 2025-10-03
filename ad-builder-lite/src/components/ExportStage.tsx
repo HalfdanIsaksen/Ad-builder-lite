@@ -173,7 +173,7 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-neutral-200">
           <button className="btn" onClick={onClose} disabled={isBusy}>Cancel</button>
-          <button className="btn-primary" disabled={!canExport || isBusy} onClick={doExport}>
+          <button className="btn" disabled={!canExport || isBusy} onClick={doExport}>
             {isBusy ? 'Exporting…' : tab === 'html5' ? 'Export HTML5' : 'Export JSON'}
           </button>
         </div>
