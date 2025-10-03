@@ -201,14 +201,32 @@ export default function CanvasStage() {
     tr.getLayer()?.batchDraw();
   }, [selectedNode, selectedId, elements]);
 
-  const boundBoxFunc = useMemo(
-    () => (oldBox: any, newBox: any) => {
-      const MIN_SIZE = 10;
-      if (newBox.width < MIN_SIZE || newBox.height < MIN_SIZE) return oldBox;
-      return { ...newBox, width: Math.max(MIN_SIZE, newBox.width), height: Math.max(MIN_SIZE, newBox.height) };
-    },
-    []
+  const selectedEl = useMemo(
+    () => elements.find((e) => e.id === selectedId),
+    [elements, selectedId]
   );
+
+  const boundBoxFunc = useMemo(() => {
+    const MIN = 10;
+
+    // Lock ratio for images unless 'stretch'
+    if (selectedEl && selectedEl.type === 'image' && (selectedEl as any).imageFit !== 'stretch') {
+      const ar = (selectedEl.height || 1) / (selectedEl.width || 1);
+      return (oldBox: any, newBox: any) => {
+        if (newBox.width < MIN || newBox.height < MIN) return oldBox;
+        const width = Math.max(MIN, newBox.width);
+        const height = Math.max(MIN, width * ar);
+        return { ...newBox, width, height };
+      };
+    }
+
+    // default (texts/buttons/others)
+    return (oldBox: any, newBox: any) => {
+      if (newBox.width < MIN || newBox.height < MIN) return oldBox;
+      return newBox;
+    };
+  }, [selectedEl]);
+
 
   return (
     <div className="flex-1 flex items-center justify-center bg-neutral-100" onDragOver={onDragOver} onDrop={onDrop}>
