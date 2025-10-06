@@ -54,21 +54,25 @@ export function createKonvaAnimations(
     const futureKeyframes = keyframes.filter(kf => kf.time > currentTime);
     if (futureKeyframes.length === 0) return;
 
-    // Set initial value based on current time
+    // Set initial value based on current time (smooth transition from scrubbing)
     const initialValue = getAnimatedValue(
-      node.getAttr(property === 'scale' ? 'scaleX' : property) || 0,
+      property === 'scale' ? 1 : node.getAttr(property) || 0,
       property,
       elementId,
       currentTime,
       tracks
     );
 
+    // Set the starting position immediately
     if (property === 'scale') {
       node.scaleX(initialValue);
       node.scaleY(initialValue);
     } else {
       node.setAttr(property, initialValue);
     }
+    
+    // Force a redraw to prevent flicker
+    node.getLayer()?.batchDraw();
     
     // Create sequential tweens for future keyframes
     let lastTime = currentTime;
@@ -97,7 +101,8 @@ export function createKonvaAnimations(
       if (delay > 0) {
         setTimeout(() => tween.play(), delay);
       } else {
-        tween.play();
+        // Small delay to ensure initial position is set
+        setTimeout(() => tween.play(), 16); // ~1 frame delay
       }
       
       animations.push(tween);

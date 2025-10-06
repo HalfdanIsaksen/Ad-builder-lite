@@ -3,7 +3,7 @@ import { Text, Image as KImage, Group, Rect } from 'react-konva';
 import useImage from 'use-image';
 import { useEditorStore } from '../store/useEditorStore';
 import type { AnyEl, ButtonEl, ImageEl, TextEl } from '../Types';
-import { getAnimatedElement, createKonvaAnimations, stopElementAnimations } from '../utils/animation';
+import { getAnimatedElement, createKonvaAnimations, stopElementAnimations, getAnimatedValue } from '../utils/animation';
 
 type EventProps = {
   draggable: boolean;
@@ -25,10 +25,11 @@ export default function Draggable({
   const isSelected = useEditorStore((s) => s.selectedId === el.id);
   const timeline = useEditorStore((s) => s.timeline);
 
-  // Use animated values when timeline is playing, otherwise use base element values
+  // Only use manual interpolation when NOT playing (for scrubbing)
+  // When playing, let Konva handle all animations
   const animatedEl = timeline.isPlaying 
-    ? getAnimatedElement(el, timeline.currentTime, timeline.tracks)
-    : el;
+    ? el  // Use base element, Konva will animate the actual node
+    : getAnimatedElement(el, timeline.currentTime, timeline.tracks); // Manual interpolation for scrubbing
 
   const nodeRef = useRef<any>(null);
 
@@ -51,14 +52,30 @@ export default function Draggable({
         timeline.playbackSpeed
       );
     } else {
-      // Stop animations when not playing
+      // Stop animations and set to current timeline position
       stopElementAnimations(el.id);
+      
+      // Set node to current timeline position for smooth transition
+      const animatedEl = getAnimatedElement(el, timeline.currentTime, timeline.tracks);
+      node.x(animatedEl.x);
+      node.y(animatedEl.y);
+      node.width(animatedEl.width);
+      node.height(animatedEl.height);
+      node.rotation(animatedEl.rotation || 0);
+      node.opacity(animatedEl.opacity || 1);
+      
+      // Handle scale
+      const scale = getAnimatedValue(1, 'scale', el.id, timeline.currentTime, timeline.tracks);
+      node.scaleX(scale);
+      node.scaleY(scale);
+      
+      node.getLayer()?.batchDraw();
     }
 
     return () => {
       stopElementAnimations(el.id);
     };
-  }, [timeline.isPlaying, el.id, timeline.tracks]);
+  }, [timeline.isPlaying, el.id, timeline.tracks, timeline.currentTime]);
 
   const eventProps: EventProps = {
     draggable: !timeline.isPlaying, // Disable dragging during animation playback
