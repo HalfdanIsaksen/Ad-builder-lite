@@ -3,7 +3,7 @@ import { Text, Image as KImage, Group, Rect } from 'react-konva';
 import useImage from 'use-image';
 import { useEditorStore } from '../store/useEditorStore';
 import type { AnyEl, ButtonEl, ImageEl, TextEl } from '../Types';
-import { getAnimatedElement } from '../utils/animation';
+import { getAnimatedElement, createKonvaAnimations, stopElementAnimations } from '../utils/animation';
 
 type EventProps = {
   draggable: boolean;
@@ -35,6 +35,30 @@ export default function Draggable({
   useEffect(() => {
     if (isSelected) onAttachNode(nodeRef.current);
   }, [isSelected, onAttachNode]);
+
+  // Handle Konva animations when timeline plays
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node) return;
+
+    if (timeline.isPlaying) {
+      // Start Konva animations from current timeline position
+      createKonvaAnimations(
+        node, 
+        el.id, 
+        timeline.tracks, 
+        timeline.currentTime, 
+        timeline.playbackSpeed
+      );
+    } else {
+      // Stop animations and use manual interpolation for scrubbing
+      stopElementAnimations(el.id);
+    }
+
+    return () => {
+      stopElementAnimations(el.id);
+    };
+  }, [timeline.isPlaying, timeline.currentTime, timeline.playbackSpeed, el.id, timeline.tracks]);
 
   const eventProps: EventProps = {
     draggable: !timeline.isPlaying, // Disable dragging during animation playback

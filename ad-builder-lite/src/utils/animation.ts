@@ -1,33 +1,133 @@
+import Konva from 'konva';
 import type { AnimationTrack, Keyframe, AnyEl, EasingType } from '../Types';
 
-// Easing functions
-const easingFunctions: Record<EasingType, (t: number) => number> = {
-  linear: (t: number) => t,
-  ease: (t: number) => t * t * (3.0 - 2.0 * t), // smoothstep
-  'ease-in': (t: number) => t * t,
-  'ease-out': (t: number) => t * (2.0 - t),
-  'ease-in-out': (t: number) => t < 0.5 ? 2.0 * t * t : -1.0 + (4.0 - 2.0 * t) * t,
-  bounce: (t: number) => {
-    if (t < 1/2.75) {
-      return 7.5625 * t * t;
-    } else if (t < 2/2.75) {
-      return 7.5625 * (t -= 1.5/2.75) * t + 0.75;
-    } else if (t < 2.5/2.75) {
-      return 7.5625 * (t -= 2.25/2.75) * t + 0.9375;
-    } else {
-      return 7.5625 * (t -= 2.625/2.75) * t + 0.984375;
-    }
-  },
-  elastic: (t: number) => {
-    if (t === 0) return 0;
-    if (t === 1) return 1;
-    const p = 0.3;
-    const s = p / 4;
-    return Math.pow(2, -10 * t) * Math.sin((t - s) * (2 * Math.PI) / p) + 1;
-  }
-};
+// Active Konva animations registry
+const activeAnimations = new Map<string, Konva.Tween[]>();
 
-// Get the animated value for a property at a specific time
+// Map our easing types to Konva's easing functions
+function getKonvaEasing(easing: EasingType): (t: number, b: number, c: number, d: number) => number {
+  switch (easing) {
+    case 'linear': return Konva.Easings.Linear;
+    case 'ease': return Konva.Easings.EaseInOut;
+    case 'ease-in': return Konva.Easings.EaseIn;
+    case 'ease-out': return Konva.Easings.EaseOut;
+    case 'ease-in-out': return Konva.Easings.EaseInOut;
+    case 'bounce': return Konva.Easings.BounceEaseOut;
+    case 'elastic': return (t, b, c, d) => Konva.Easings.ElasticEaseOut(t, b, c, d, 1, 0.3);
+    default: return Konva.Easings.EaseOut;
+  }
+}
+
+// Create Konva tweens for element animation starting from current time
+export function createKonvaAnimations(
+  node: Konva.Node,
+  elementId: string,
+  tracks: AnimationTrack[],
+  currentTime: number = 0,
+  playbackSpeed: number = 1
+): void {
+  // Clear existing animations
+  stopElementAnimations(elementId);
+
+  const track = tracks.find(t => t.elementId === elementId);
+  if (!track || track.keyframes.length === 0) return;
+
+  const animations: Konva.Tween[] = [];
+  
+  // Group keyframes by property
+  const propertiesMap = new Map<string, Keyframe[]>();
+  track.keyframes.forEach(kf => {
+    if (!propertiesMap.has(kf.property)) {
+      propertiesMap.set(kf.property, []);
+    }
+    propertiesMap.get(kf.property)!.push(kf);
+  });
+
+  // Create tweens for each property
+  propertiesMap.forEach((keyframes, property) => {
+    keyframes.sort((a, b) => a.time - b.time);
+    
+    // Find keyframes that occur after current time
+    const futureKeyframes = keyframes.filter(kf => kf.time > currentTime);
+    if (futureKeyframes.length === 0) return;
+
+    // Set initial value based on current time
+    const initialValue = getAnimatedValue(
+      node.getAttr(property === 'scale' ? 'scaleX' : property) || 0,
+      property,
+      elementId,
+      currentTime,
+      tracks
+    );
+
+    if (property === 'scale') {
+      node.scaleX(initialValue);
+      node.scaleY(initialValue);
+    } else {
+      node.setAttr(property, initialValue);
+    }
+    
+    // Create sequential tweens for future keyframes
+    let lastTime = currentTime;
+    let lastValue = initialValue;
+    
+    futureKeyframes.forEach((kf) => {
+      const duration = (kf.time - lastTime) * 1000 / playbackSpeed; // Convert to ms and apply speed
+      const delay = (lastTime - currentTime) * 1000 / playbackSpeed; // Delay relative to animation start
+      
+      const tweenConfig: any = {
+        node,
+        duration,
+        easing: getKonvaEasing(kf.easing || 'ease-out')
+      };
+
+      // Set the property to animate
+      if (property === 'scale') {
+        tweenConfig.scaleX = kf.value;
+        tweenConfig.scaleY = kf.value;
+      } else {
+        tweenConfig[property] = kf.value;
+      }
+
+      const tween = new Konva.Tween(tweenConfig);
+      
+      // Delay the start of this tween
+      if (delay > 0) {
+        setTimeout(() => tween.play(), delay);
+      } else {
+        tween.play();
+      }
+      
+      animations.push(tween);
+      
+      lastTime = kf.time;
+      lastValue = kf.value;
+    });
+  });
+
+  activeAnimations.set(elementId, animations);
+}
+
+// Stop all animations for an element
+export function stopElementAnimations(elementId: string): void {
+  const animations = activeAnimations.get(elementId);
+  if (animations) {
+    animations.forEach(tween => {
+      tween.destroy();
+    });
+    activeAnimations.delete(elementId);
+  }
+}
+
+// Stop all active animations
+export function stopAllAnimations(): void {
+  activeAnimations.forEach((animations) => {
+    animations.forEach(tween => tween.destroy());
+  });
+  activeAnimations.clear();
+}
+
+// Get the animated value for a property at a specific time (for timeline scrubbing)
 export function getAnimatedValue(
   baseValue: number,
   property: string,
@@ -41,7 +141,7 @@ export function getAnimatedValue(
   const keyframes = track.keyframes.filter(kf => kf.property === property).sort((a, b) => a.time - b.time);
   if (keyframes.length === 0) return baseValue;
 
-  // If current time is before first keyframe, return base value
+  // If current time is before first keyframe, return first keyframe value
   if (currentTime <= keyframes[0].time) {
     return keyframes[0].value;
   }
@@ -71,9 +171,9 @@ export function getAnimatedValue(
   const duration = nextKeyframe.time - prevKeyframe.time;
   const progress = duration > 0 ? (currentTime - prevKeyframe.time) / duration : 0;
 
-  // Apply easing function
-  const easing = nextKeyframe.easing || 'ease-out';
-  const easedProgress = easingFunctions[easing](Math.max(0, Math.min(1, progress)));
+  // Apply easing using Konva's easing function
+  const easing = getKonvaEasing(nextKeyframe.easing || 'ease-out');
+  const easedProgress = easing(progress, 0, 1, 1);
 
   // Interpolate between values
   return prevKeyframe.value + (nextKeyframe.value - prevKeyframe.value) * easedProgress;

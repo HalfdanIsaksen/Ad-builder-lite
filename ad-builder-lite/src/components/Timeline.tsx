@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
 import type { AnimationProperty, AnimationTrack, Keyframe } from '../Types';
+import { stopAllAnimations } from '../utils/animation';
 
 const Timeline: React.FC = () => {
   const {
@@ -29,25 +30,27 @@ const Timeline: React.FC = () => {
   const pixelsPerSecond = 100; // Scale factor for timeline
   const timelineWidth = timeline.duration * pixelsPerSecond;
 
-  // Animation playback loop
+  // Handle animation stop and cleanup
+  useEffect(() => {
+    if (!timeline.isPlaying) {
+      stopAllAnimations();
+    }
+  }, [timeline.isPlaying]);
+
+  // Timeline duration tracking for auto-stop
   useEffect(() => {
     if (!timeline.isPlaying) return;
 
-    const interval = setInterval(() => {
-      const nextTime = timeline.currentTime + (1/60) * timeline.playbackSpeed; // 60fps updates
-      
-      if (nextTime >= timeline.duration) {
-        if (timeline.loop) {
-          setTimelineTime(0);
-        } else {
-          pauseTimeline();
-        }
+    const timeout = setTimeout(() => {
+      if (timeline.loop) {
+        setTimelineTime(0);
+        // Animations will restart automatically via Draggable useEffect
       } else {
-        setTimelineTime(nextTime);
+        pauseTimeline();
       }
-    }, 1000/60);
+    }, (timeline.duration - timeline.currentTime) * 1000 / timeline.playbackSpeed);
 
-    return () => clearInterval(interval);
+    return () => clearTimeout(timeout);
   }, [timeline.isPlaying, timeline.currentTime, timeline.duration, timeline.loop, timeline.playbackSpeed, setTimelineTime, pauseTimeline]);
 
   const handleTimelineClick = (e: React.MouseEvent) => {
