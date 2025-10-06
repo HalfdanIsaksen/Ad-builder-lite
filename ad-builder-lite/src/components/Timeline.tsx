@@ -37,20 +37,25 @@ const Timeline: React.FC = () => {
     }
   }, [timeline.isPlaying]);
 
-  // Timeline duration tracking for auto-stop
+  // Simple timeline playback tracking 
   useEffect(() => {
     if (!timeline.isPlaying) return;
 
-    const timeout = setTimeout(() => {
-      if (timeline.loop) {
-        setTimelineTime(0);
-        // Animations will restart automatically via Draggable useEffect
+    const interval = setInterval(() => {
+      const newTime = timeline.currentTime + (1/30) * timeline.playbackSpeed; // 30fps updates for timeline scrubber
+      
+      if (newTime >= timeline.duration) {
+        if (timeline.loop) {
+          setTimelineTime(0);
+        } else {
+          pauseTimeline();
+        }
       } else {
-        pauseTimeline();
+        setTimelineTime(newTime);
       }
-    }, (timeline.duration - timeline.currentTime) * 1000 / timeline.playbackSpeed);
+    }, 1000/30); // 30fps updates
 
-    return () => clearTimeout(timeout);
+    return () => clearInterval(interval);
   }, [timeline.isPlaying, timeline.currentTime, timeline.duration, timeline.loop, timeline.playbackSpeed, setTimelineTime, pauseTimeline]);
 
   const handleTimelineClick = (e: React.MouseEvent) => {
@@ -197,7 +202,14 @@ const Timeline: React.FC = () => {
       {/* Timeline Controls */}
       <div className="flex items-center gap-2 p-2 bg-gray-50 border-b border-gray-200">
         <button
-          onClick={timeline.isPlaying ? pauseTimeline : playTimeline}
+          onClick={() => {
+            console.log('Play button clicked, current state:', timeline.isPlaying);
+            if (timeline.isPlaying) {
+              pauseTimeline();
+            } else {
+              playTimeline();
+            }
+          }}
           className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           {timeline.isPlaying ? '⏸️' : '▶️'}

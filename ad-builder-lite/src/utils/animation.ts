@@ -29,6 +29,9 @@ export function createKonvaAnimations(
   // Clear existing animations
   stopElementAnimations(elementId);
 
+  // Safety checks
+  if (!node || !elementId || !tracks) return;
+  
   const track = tracks.find(t => t.elementId === elementId);
   if (!track || track.keyframes.length === 0) return;
 
@@ -69,7 +72,6 @@ export function createKonvaAnimations(
     
     // Create sequential tweens for future keyframes
     let lastTime = currentTime;
-    let lastValue = initialValue;
     
     futureKeyframes.forEach((kf) => {
       const duration = (kf.time - lastTime) * 1000 / playbackSpeed; // Convert to ms and apply speed
@@ -101,7 +103,6 @@ export function createKonvaAnimations(
       animations.push(tween);
       
       lastTime = kf.time;
-      lastValue = kf.value;
     });
   });
 

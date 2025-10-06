@@ -36,7 +36,7 @@ export default function Draggable({
     if (isSelected) onAttachNode(nodeRef.current);
   }, [isSelected, onAttachNode]);
 
-  // Handle Konva animations when timeline plays
+  // Handle Konva animations when timeline state changes
   useEffect(() => {
     const node = nodeRef.current;
     if (!node) return;
@@ -51,14 +51,14 @@ export default function Draggable({
         timeline.playbackSpeed
       );
     } else {
-      // Stop animations and use manual interpolation for scrubbing
+      // Stop animations when not playing
       stopElementAnimations(el.id);
     }
 
     return () => {
       stopElementAnimations(el.id);
     };
-  }, [timeline.isPlaying, timeline.currentTime, timeline.playbackSpeed, el.id, timeline.tracks]);
+  }, [timeline.isPlaying, el.id, timeline.tracks]);
 
   const eventProps: EventProps = {
     draggable: !timeline.isPlaying, // Disable dragging during animation playback
