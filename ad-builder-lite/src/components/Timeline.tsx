@@ -1,0 +1,356 @@
+import React, { useRef, useEffect, useState } from 'react';
+import { useEditorStore } from '../store/useEditorStore';
+import type { AnimationProperty, AnimationTrack, Keyframe } from '../Types';
+
+const Timeline: React.FC = () => {
+  const {
+    elements,
+    timeline,
+    playTimeline,
+    pauseTimeline,
+    setTimelineTime,
+    setTimelineDuration,
+    setPlaybackSpeed,
+    toggleLoop,
+    addKeyframe,
+    removeKeyframe,
+    createAnimationTrack,
+    toggleTrackVisibility,
+    toggleTrackLock
+  } = useEditorStore();
+
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [dragState, setDragState] = useState<{ isDragging: boolean; startX: number; startTime: number }>({
+    isDragging: false,
+    startX: 0,
+    startTime: 0
+  });
+
+  const pixelsPerSecond = 100; // Scale factor for timeline
+  const timelineWidth = timeline.duration * pixelsPerSecond;
+
+  // Animation playback loop
+  useEffect(() => {
+    if (!timeline.isPlaying) return;
+
+    const interval = setInterval(() => {
+      const nextTime = timeline.currentTime + (1/60) * timeline.playbackSpeed; // 60fps updates
+      
+      if (nextTime >= timeline.duration) {
+        if (timeline.loop) {
+          setTimelineTime(0);
+        } else {
+          pauseTimeline();
+        }
+      } else {
+        setTimelineTime(nextTime);
+      }
+    }, 1000/60);
+
+    return () => clearInterval(interval);
+  }, [timeline.isPlaying, timeline.currentTime, timeline.duration, timeline.loop, timeline.playbackSpeed, setTimelineTime, pauseTimeline]);
+
+  const handleTimelineClick = (e: React.MouseEvent) => {
+    if (!timelineRef.current) return;
+    
+    const rect = timelineRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const time = (x / pixelsPerSecond);
+    setTimelineTime(Math.max(0, Math.min(time, timeline.duration)));
+  };
+
+  const handleScrubberMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDragState({
+      isDragging: true,
+      startX: e.clientX,
+      startTime: timeline.currentTime
+    });
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!dragState.isDragging) return;
+    
+    const deltaX = e.clientX - dragState.startX;
+    const deltaTime = deltaX / pixelsPerSecond;
+    const newTime = Math.max(0, Math.min(dragState.startTime + deltaTime, timeline.duration));
+    setTimelineTime(newTime);
+  };
+
+  const handleMouseUp = () => {
+    setDragState({ isDragging: false, startX: 0, startTime: 0 });
+  };
+
+  useEffect(() => {
+    if (dragState.isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [dragState.isDragging]);
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    const milliseconds = Math.floor((time % 1) * 100);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+  };
+
+  const createTrackForElement = (elementId: string) => {
+    createAnimationTrack(elementId);
+  };
+
+  const addKeyframeAtCurrentTime = (elementId: string, property: AnimationProperty) => {
+    const element = elements.find(el => el.id === elementId);
+    if (!element) return;
+
+    let currentValue = 0;
+    switch (property) {
+      case 'x': currentValue = element.x; break;
+      case 'y': currentValue = element.y; break;
+      case 'width': currentValue = element.width; break;
+      case 'height': currentValue = element.height; break;
+      case 'rotation': currentValue = element.rotation || 0; break;
+      case 'opacity': currentValue = element.opacity || 1; break;
+      case 'scale': currentValue = 1; break; // Default scale
+    }
+
+    addKeyframe(elementId, property, timeline.currentTime, currentValue);
+  };
+
+  const renderTimeRuler = () => {
+    const ticks = [];
+    const step = 1; // 1 second intervals
+    
+    for (let i = 0; i <= timeline.duration; i += step) {
+      ticks.push(
+        <div key={i} className="absolute flex flex-col items-center" style={{ left: i * pixelsPerSecond }}>
+          <div className="w-px h-3 bg-gray-400"></div>
+          <span className="text-xs text-gray-500 mt-1">{formatTime(i)}</span>
+        </div>
+      );
+    }
+    
+    return ticks;
+  };
+
+  const renderTrack = (track: AnimationTrack) => {
+    const element = elements.find(el => el.id === track.elementId);
+    if (!element) return null;
+
+    const properties: AnimationProperty[] = ['x', 'y', 'width', 'height', 'rotation', 'opacity'];
+    
+    return (
+      <div key={track.id} className="border-b border-gray-200">
+        <div className="flex items-center h-10 bg-gray-50 px-2 border-r border-gray-200">
+          <button
+            onClick={() => toggleTrackVisibility(track.id)}
+            className={`w-4 h-4 rounded mr-2 ${track.visible ? 'bg-blue-500' : 'bg-gray-300'}`}
+          />
+          <button
+            onClick={() => toggleTrackLock(track.id)}
+            className={`w-4 h-4 rounded mr-2 ${track.locked ? 'bg-red-500' : 'bg-gray-300'}`}
+          />
+          <span className="text-sm font-medium truncate max-w-24" title={element.type}>
+            {element.type} #{element.id.slice(0, 4)}
+          </span>
+        </div>
+        
+        {properties.map(property => (
+          <div key={property} className="relative h-8 bg-white border-b border-gray-100 flex items-center">
+            <div className="w-32 px-2 text-xs text-gray-600 border-r border-gray-200 flex items-center justify-between">
+              <span>{property}</span>
+              <button
+                onClick={() => addKeyframeAtCurrentTime(track.elementId, property)}
+                className="w-4 h-4 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                title={`Add ${property} keyframe`}
+              >
+                +
+              </button>
+            </div>
+            <div className="flex-1 relative">
+              {track.keyframes
+                .filter(kf => kf.property === property)
+                .map(keyframe => (
+                  <KeyframeMarker
+                    key={keyframe.id}
+                    keyframe={keyframe}
+                    pixelsPerSecond={pixelsPerSecond}
+                    onRemove={() => removeKeyframe(keyframe.id)}
+                  />
+                ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="bg-white border-t border-gray-200 flex flex-col h-64">
+      {/* Timeline Controls */}
+      <div className="flex items-center gap-2 p-2 bg-gray-50 border-b border-gray-200">
+        <button
+          onClick={timeline.isPlaying ? pauseTimeline : playTimeline}
+          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          {timeline.isPlaying ? '⏸️' : '▶️'}
+        </button>
+        
+        <button
+          onClick={() => setTimelineTime(0)}
+          className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+        >
+          ⏮️
+        </button>
+        
+        <div className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+          {formatTime(timeline.currentTime)} / {formatTime(timeline.duration)}
+        </div>
+        
+        <label className="text-sm flex items-center gap-1">
+          Speed:
+          <select
+            value={timeline.playbackSpeed}
+            onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+            className="text-xs border rounded px-1"
+          >
+            <option value={0.25}>0.25x</option>
+            <option value={0.5}>0.5x</option>
+            <option value={1}>1x</option>
+            <option value={2}>2x</option>
+          </select>
+        </label>
+        
+        <label className="text-sm flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={timeline.loop}
+            onChange={toggleLoop}
+          />
+          Loop
+        </label>
+        
+        <label className="text-sm flex items-center gap-1">
+          Duration:
+          <input
+            type="number"
+            min="1"
+            max="60"
+            value={timeline.duration}
+            onChange={(e) => setTimelineDuration(Number(e.target.value))}
+            className="w-16 text-xs border rounded px-1"
+          />
+          s
+        </label>
+      </div>
+
+      {/* Timeline Area */}
+      <div className="flex-1 overflow-auto">
+        <div className="flex">
+          {/* Track Labels */}
+          <div className="w-32 bg-gray-50 border-r border-gray-200">
+            <div className="h-12 bg-gray-100 border-b border-gray-200 flex items-center px-2">
+              <span className="text-sm font-medium">Layers</span>
+            </div>
+            
+            {/* Element tracks */}
+            {elements.map(element => {
+              const hasTrack = timeline.tracks.some(t => t.elementId === element.id);
+              return (
+                <div key={element.id} className="border-b border-gray-200">
+                  <div className="h-10 flex items-center px-2 justify-between">
+                    <span className="text-sm truncate" title={element.type}>
+                      {element.type}
+                    </span>
+                    {!hasTrack && (
+                      <button
+                        onClick={() => createTrackForElement(element.id)}
+                        className="text-xs bg-green-500 text-white px-1 rounded hover:bg-green-600"
+                        title="Create animation track"
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
+                  {hasTrack && (
+                    <div className="text-xs text-gray-500 space-y-1">
+                      {['x', 'y', 'width', 'height', 'rotation', 'opacity'].map(prop => (
+                        <div key={prop} className="h-8 px-2 flex items-center border-b border-gray-100">
+                          {prop}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Timeline Canvas */}
+          <div className="flex-1 relative">
+            {/* Time Ruler */}
+            <div className="h-12 bg-gray-100 border-b border-gray-200 relative">
+              {renderTimeRuler()}
+            </div>
+
+            {/* Timeline Background */}
+            <div
+              ref={timelineRef}
+              className="relative bg-white cursor-pointer"
+              style={{ width: timelineWidth }}
+              onClick={handleTimelineClick}
+            >
+              {/* Current Time Scrubber */}
+              <div
+                className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 cursor-grab active:cursor-grabbing"
+                style={{ left: timeline.currentTime * pixelsPerSecond }}
+                onMouseDown={handleScrubberMouseDown}
+              >
+                <div className="w-3 h-3 bg-red-500 rounded-full -ml-1.5 -mt-1.5 absolute"></div>
+              </div>
+
+              {/* Tracks */}
+              {timeline.tracks.map(renderTrack)}
+
+              {/* Grid lines */}
+              {Array.from({ length: Math.ceil(timeline.duration) + 1 }, (_, i) => (
+                <div
+                  key={i}
+                  className="absolute top-0 bottom-0 w-px bg-gray-200"
+                  style={{ left: i * pixelsPerSecond }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Keyframe marker component
+const KeyframeMarker: React.FC<{
+  keyframe: Keyframe;
+  pixelsPerSecond: number;
+  onRemove: () => void;
+}> = ({ keyframe, pixelsPerSecond, onRemove }) => {
+  return (
+    <div
+      className="absolute w-2 h-2 bg-blue-500 rounded-full cursor-pointer hover:bg-blue-600 -ml-1 -mt-1 top-1/2"
+      style={{ left: keyframe.time * pixelsPerSecond }}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (e.shiftKey) {
+          onRemove();
+        }
+      }}
+      title={`${keyframe.property}: ${keyframe.value} @ ${keyframe.time.toFixed(2)}s (Shift+click to remove)`}
+    />
+  );
+};
+
+export default Timeline;

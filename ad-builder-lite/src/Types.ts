@@ -43,3 +43,34 @@ export type ButtonEl = BaseEl & {
 export type AnyEl = TextEl | ImageEl | ButtonEl;
 
 export type CanvasPreset = 'desktop' | 'tablet' | 'mobile';
+
+// Animation types
+export type EasingType = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce' | 'elastic';
+
+export type AnimationProperty = 'x' | 'y' | 'width' | 'height' | 'rotation' | 'opacity' | 'scale';
+
+export type Keyframe = {
+  id: string;
+  time: number; // in seconds
+  elementId: string;
+  property: AnimationProperty;
+  value: number;
+  easing?: EasingType;
+};
+
+export type AnimationTrack = {
+  id: string;
+  elementId: string;
+  keyframes: Keyframe[];
+  visible: boolean;
+  locked: boolean;
+};
+
+export type TimelineState = {
+  currentTime: number; // in seconds
+  duration: number; // total timeline duration in seconds
+  isPlaying: boolean;
+  playbackSpeed: number; // 1.0 = normal speed
+  loop: boolean;
+  tracks: AnimationTrack[];
+};

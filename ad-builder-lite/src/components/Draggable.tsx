@@ -3,6 +3,7 @@ import { Text, Image as KImage, Group, Rect } from 'react-konva';
 import useImage from 'use-image';
 import { useEditorStore } from '../store/useEditorStore';
 import type { AnyEl, ButtonEl, ImageEl, TextEl } from '../Types';
+import { getAnimatedElement } from '../utils/animation';
 
 type EventProps = {
   draggable: boolean;
@@ -22,6 +23,12 @@ export default function Draggable({
   const select = useEditorStore((s) => s.select);
   const update = useEditorStore((s) => s.updateElement);
   const isSelected = useEditorStore((s) => s.selectedId === el.id);
+  const timeline = useEditorStore((s) => s.timeline);
+
+  // Use animated values when timeline is playing, otherwise use base element values
+  const animatedEl = timeline.isPlaying 
+    ? getAnimatedElement(el, timeline.currentTime, timeline.tracks)
+    : el;
 
   const nodeRef = useRef<any>(null);
 
@@ -30,9 +37,9 @@ export default function Draggable({
   }, [isSelected, onAttachNode]);
 
   const eventProps: EventProps = {
-    draggable: true,
-    onMouseDown: () => select(el.id),
-    onTap: () => select(el.id),
+    draggable: !timeline.isPlaying, // Disable dragging during animation playback
+    onMouseDown: () => !timeline.isPlaying && select(el.id),
+    onTap: () => !timeline.isPlaying && select(el.id),
 
     // IMPORTANT: positions reported are in the parent group's (scaled) space.
     onDragEnd: (e: any) => {
@@ -67,7 +74,7 @@ export default function Draggable({
   };
 
   if (el.type === 'text') {
-    const t = el as TextEl;
+    const t = animatedEl as TextEl;
     return (
       <Text
         ref={nodeRef}
@@ -87,7 +94,7 @@ export default function Draggable({
   }
 
   if (el.type === 'image') {
-    const i = el as ImageEl;
+    const i = animatedEl as ImageEl;
     const [img] = useImage(i.src, 'anonymous');
 
     const frameRef = nodeRef;
@@ -150,7 +157,7 @@ export default function Draggable({
 
 
   if (el.type === 'button') {
-    const b = el as ButtonEl;
+    const b = animatedEl as ButtonEl;
     const [bgImg] = useImage(b.bgImageSrc || '', 'anonymous');
 
     const radius = 12;
