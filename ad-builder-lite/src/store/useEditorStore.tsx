@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyEl, CanvasPreset, ElementType } from '../Types';
+import type { AnyEl, CanvasPreset, ElementType, TimelineState, AnimationTrack, Keyframe, AnimationProperty } from '../Types';
 import { fileToDataURL } from '../utils/files';
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
@@ -9,6 +9,7 @@ type State = {
     elements: AnyEl[];
     selectedId: string | null;
     preset: CanvasPreset;
+    timeline: TimelineState;
 };
 
 type Actions = {
@@ -22,14 +23,37 @@ type Actions = {
     select: (id: string | null) => void;
     clear: () => void;
     importJSON: (data: AnyEl[]) => void;
+    
+    // Timeline actions
+    playTimeline: () => void;
+    pauseTimeline: () => void;
+    setTimelineTime: (time: number) => void;
+    setTimelineDuration: (duration: number) => void;
+    setPlaybackSpeed: (speed: number) => void;
+    toggleLoop: () => void;
+    addKeyframe: (elementId: string, property: AnimationProperty, time: number, value: number) => void;
+    updateKeyframe: (keyframeId: string, updates: Partial<Keyframe>) => void;
+    removeKeyframe: (keyframeId: string) => void;
+    createAnimationTrack: (elementId: string) => void;
+    toggleTrackVisibility: (trackId: string) => void;
+    toggleTrackLock: (trackId: string) => void;
+    toggleTrackExpansion: (trackId: string) => void;
 };
 
 export const useEditorStore = create<State & Actions>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             elements: [],
             selectedId: null,
             preset: 'desktop',
+            timeline: {
+                currentTime: 0,
+                duration: 10, // 10 seconds default
+                isPlaying: false,
+                playbackSpeed: 1.0,
+                loop: false,
+                tracks: []
+            },
 
             setPreset: (p) => set({ preset: p }),
 
@@ -50,13 +74,30 @@ export const useEditorStore = create<State & Actions>()(
                 const img = new Image();
                 const id = uid();
                 img.onload = () => {
-                    const w = Math.min(img.naturalWidth, 400);
-                    const scale = w / img.naturalWidth;
-                    const h = img.naturalHeight * scale;
+                    const naturalW = img.naturalWidth;
+                    const naturalH = img.naturalHeight;
+
+                    const maxW = 400;
+                    const w = Math.min(naturalW, maxW);
+                    const h = Math.round((naturalH / naturalW) * w);
+
                     set((s) => ({
                         elements: [
                             ...s.elements,
-                            { id, type: 'image', x: 40, y: 40, width: w, height: h, src: dataUrl, opacity: 1, visible: true } as any,
+                            {
+                                id,
+                                type: 'image',
+                                x: 40,
+                                y: 40,
+                                width: w,
+                                height: h,
+                                src: dataUrl,
+                                opacity: 1,
+                                visible: true,
+                                imageFit: 'cover', // default like CSS background
+                                naturalW,
+                                naturalH,
+                            } as any,
                         ],
                         selectedId: id,
                     }));
@@ -64,9 +105,22 @@ export const useEditorStore = create<State & Actions>()(
                 img.src = dataUrl;
             },
 
+
             replaceImageFromFile: async (id, file) => {
                 const dataUrl = await fileToDataURL(file);
-                set((s) => ({ elements: s.elements.map((e) => (e.id === id ? { ...e, src: dataUrl } : e)) }));
+                const img = new Image();
+                img.onload = () => {
+                    const naturalW = img.naturalWidth;
+                    const naturalH = img.naturalHeight;
+                    set((s) => ({
+                        elements: s.elements.map((e) =>
+                            e.id === id
+                                ? { ...e, src: dataUrl, naturalW, naturalH }
+                                : e
+                        ),
+                    }));
+                };
+                img.src = dataUrl;
             },
             replaceButtonBgFromFile: async (id, file) => {
                 const dataUrl = await fileToDataURL(file);
@@ -87,9 +141,145 @@ export const useEditorStore = create<State & Actions>()(
 
             select: (id) => set({ selectedId: id }),
 
-            clear: () => set({ elements: [], selectedId: null }),
+            clear: () => set({ 
+                elements: [], 
+                selectedId: null,
+                timeline: {
+                    currentTime: 0,
+                    duration: 10,
+                    isPlaying: false,
+                    playbackSpeed: 1.0,
+                    loop: false,
+                    tracks: []
+                }
+            }),
 
             importJSON: (data) => set({ elements: data, selectedId: null }),
+
+            // Timeline actions
+            playTimeline: () => set((s) => ({
+                timeline: { ...s.timeline, isPlaying: true }
+            })),
+
+            pauseTimeline: () => set((s) => ({
+                timeline: { ...s.timeline, isPlaying: false }
+            })),
+
+            setTimelineTime: (time) => set((s) => ({
+                timeline: { ...s.timeline, currentTime: Math.max(0, Math.min(time, s.timeline.duration)) }
+            })),
+
+            setTimelineDuration: (duration) => set((s) => ({
+                timeline: { ...s.timeline, duration: Math.max(1, duration) }
+            })),
+
+            setPlaybackSpeed: (speed) => set((s) => ({
+                timeline: { ...s.timeline, playbackSpeed: speed }
+            })),
+
+            toggleLoop: () => set((s) => ({
+                timeline: { ...s.timeline, loop: !s.timeline.loop }
+            })),
+
+            addKeyframe: (elementId, property, time, value) => set((s) => {
+                const trackIndex = s.timeline.tracks.findIndex(t => t.elementId === elementId);
+                let tracks = [...s.timeline.tracks];
+                
+                const keyframe: Keyframe = {
+                    id: uid(),
+                    time,
+                    elementId,
+                    property,
+                    value,
+                    easing: 'ease-out'
+                };
+
+                if (trackIndex >= 0) {
+                    tracks[trackIndex] = {
+                        ...tracks[trackIndex],
+                        keyframes: [...tracks[trackIndex].keyframes, keyframe].sort((a, b) => a.time - b.time)
+                    };
+                } else {
+                    tracks.push({
+                        id: uid(),
+                        elementId,
+                        keyframes: [keyframe],
+                        visible: true,
+                        locked: false,
+                        expanded: true
+                    });
+                }
+
+                return { timeline: { ...s.timeline, tracks } };
+            }),
+
+            updateKeyframe: (keyframeId, updates) => set((s) => ({
+                timeline: {
+                    ...s.timeline,
+                    tracks: s.timeline.tracks.map(track => ({
+                        ...track,
+                        keyframes: track.keyframes.map(kf => 
+                            kf.id === keyframeId ? { ...kf, ...updates } : kf
+                        )
+                    }))
+                }
+            })),
+
+            removeKeyframe: (keyframeId) => set((s) => ({
+                timeline: {
+                    ...s.timeline,
+                    tracks: s.timeline.tracks.map(track => ({
+                        ...track,
+                        keyframes: track.keyframes.filter(kf => kf.id !== keyframeId)
+                    })).filter(track => track.keyframes.length > 0)
+                }
+            })),
+
+            createAnimationTrack: (elementId) => set((s) => {
+                const existingTrack = s.timeline.tracks.find(t => t.elementId === elementId);
+                if (existingTrack) return s;
+
+                return {
+                    timeline: {
+                        ...s.timeline,
+                        tracks: [...s.timeline.tracks, {
+                            id: uid(),
+                            elementId,
+                            keyframes: [],
+                            visible: true,
+                            locked: false,
+                            expanded: true
+                        }]
+                    }
+                };
+            }),
+
+            toggleTrackVisibility: (trackId) => set((s) => ({
+                timeline: {
+                    ...s.timeline,
+                    tracks: s.timeline.tracks.map(track =>
+                        track.id === trackId ? { ...track, visible: !track.visible } : track
+                    )
+                }
+            })),
+
+            toggleTrackLock: (trackId) => set((s) => ({
+                timeline: {
+                    ...s.timeline,
+                    tracks: s.timeline.tracks.map(track =>
+                        track.id === trackId ? { ...track, locked: !track.locked } : track
+                    )
+                }
+            })),
+
+            toggleTrackExpansion: (trackId) => set((s) => ({
+                timeline: {
+                    ...s.timeline,
+                    tracks: s.timeline.tracks.map(track =>
+                        track.id === trackId ? { ...track, expanded: !track.expanded } : track
+                    )
+                }
+            })),
         }),
         { name: 'adbuilder-lite' }
     )
