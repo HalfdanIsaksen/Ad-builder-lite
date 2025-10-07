@@ -21,6 +21,13 @@ const Timeline: React.FC = () => {
         toggleTrackExpansion
     } = useEditorStore();
 
+    console.log('Timeline component rendered with:', {
+        elementsCount: elements.length,
+        tracksCount: timeline.tracks.length,
+        currentTime: timeline.currentTime,
+        addKeyframe: typeof addKeyframe
+    });
+    
     const timelineRef = useRef<HTMLDivElement>(null);
     const [dragState, setDragState] = useState<{ isDragging: boolean; startX: number; startTime: number }>({
         isDragging: false,
@@ -126,7 +133,13 @@ const Timeline: React.FC = () => {
             case 'opacity': currentValue = element.opacity || 1; break;
             case 'scale': currentValue = 1; break; // Default scale
         }
-
+console.log('Adding keyframe:', {
+        elementId,
+        property,
+        time: timeline.currentTime,
+        value: currentValue,
+        element
+    });
         addKeyframe(elementId, property, timeline.currentTime, currentValue);
     };
 
@@ -420,8 +433,10 @@ const KeyframeMarker: React.FC<{
 
     return (
         <div
-            className={`absolute w-2 h-2 ${colorClass} rounded-full cursor-pointer -ml-1 -mt-1 top-1/2 relative group`}
-            style={{ left: keyframe.time * pixelsPerSecond }}
+            className={`absolute w-2 h-2 ${colorClass} rounded-full cursor-pointer`}
+            style={{ left: keyframe.time * pixelsPerSecond - 4,
+                transform: 'translateY(-50%)'
+             }}
             onClick={(e) => {
                 e.stopPropagation();
                 if (e.shiftKey) {
