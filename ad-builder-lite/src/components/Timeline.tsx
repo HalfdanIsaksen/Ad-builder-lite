@@ -17,7 +17,8 @@ const Timeline: React.FC = () => {
     removeKeyframe,
     createAnimationTrack,
     toggleTrackVisibility,
-    toggleTrackLock
+    toggleTrackLock,
+    toggleTrackExpansion
   } = useEditorStore();
 
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -151,23 +152,71 @@ const Timeline: React.FC = () => {
 
     const properties: AnimationProperty[] = ['x', 'y', 'width', 'height', 'rotation', 'opacity'];
     
+    // Get all keyframes for this track for collapsed view
+    const allKeyframes = track.keyframes.sort((a, b) => a.time - b.time);
+    
     return (
       <div key={track.id} className="border-b border-gray-200">
+        {/* Track Header */}
         <div className="flex items-center h-10 bg-gray-50 px-2 border-r border-gray-200">
           <button
             onClick={() => toggleTrackVisibility(track.id)}
             className={`w-4 h-4 rounded mr-2 ${track.visible ? 'bg-blue-500' : 'bg-gray-300'}`}
+            title="Toggle visibility"
           />
           <button
             onClick={() => toggleTrackLock(track.id)}
             className={`w-4 h-4 rounded mr-2 ${track.locked ? 'bg-red-500' : 'bg-gray-300'}`}
+            title="Toggle lock"
           />
-          <span className="text-sm font-medium truncate max-w-24" title={element.type}>
-            {element.type} #{element.id.slice(0, 4)}
-          </span>
+          <button
+            onClick={() => toggleTrackExpansion(track.id)}
+            className="flex items-center flex-1 text-left hover:bg-gray-100 rounded px-1 -mx-1"
+            title="Click to expand/collapse properties"
+          >
+            <span className={`text-xs mr-2 transition-transform ${track.expanded ? 'rotate-90' : ''}`}>
+              ▶
+            </span>
+            <span className="text-sm font-medium truncate" title={`${element.type} #${element.id.slice(0, 4)}`}>
+              {element.type} #{element.id.slice(0, 4)}
+            </span>
+            {!track.expanded && allKeyframes.length > 0 && (
+              <span className="text-xs text-gray-500 ml-2">
+                ({allKeyframes.length} keyframes)
+              </span>
+            )}
+          </button>
         </div>
         
-        {properties.map(property => (
+        {/* Collapsed view - single row showing all keyframes */}
+        {!track.expanded && allKeyframes.length > 0 && (
+          <div className="relative h-8 bg-white border-b border-gray-100 flex items-center">
+            <div className="w-32 px-2 text-xs text-gray-600 border-r border-gray-200 flex items-center justify-between">
+              <span>All Properties</span>
+              <button
+                onClick={() => toggleTrackExpansion(track.id)}
+                className="w-4 h-4 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                title="Expand to see individual properties"
+              >
+                ⋯
+              </button>
+            </div>
+            <div className="flex-1 relative">
+              {allKeyframes.map(keyframe => (
+                <KeyframeMarker
+                  key={keyframe.id}
+                  keyframe={keyframe}
+                  pixelsPerSecond={pixelsPerSecond}
+                  onRemove={() => removeKeyframe(keyframe.id)}
+                  showPropertyLabel={true}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Expanded view - individual property rows */}
+        {track.expanded && properties.map(property => (
           <div key={property} className="relative h-8 bg-white border-b border-gray-100 flex items-center">
             <div className="w-32 px-2 text-xs text-gray-600 border-r border-gray-200 flex items-center justify-between">
               <span>{property}</span>
@@ -352,10 +401,26 @@ const KeyframeMarker: React.FC<{
   keyframe: Keyframe;
   pixelsPerSecond: number;
   onRemove: () => void;
-}> = ({ keyframe, pixelsPerSecond, onRemove }) => {
+  showPropertyLabel?: boolean;
+}> = ({ keyframe, pixelsPerSecond, onRemove, showPropertyLabel = false }) => {
+  // Different colors for different properties in collapsed view
+  const propertyColors: Record<string, string> = {
+    x: 'bg-red-500 hover:bg-red-600',
+    y: 'bg-green-500 hover:bg-green-600',
+    width: 'bg-blue-500 hover:bg-blue-600',
+    height: 'bg-purple-500 hover:bg-purple-600',
+    rotation: 'bg-yellow-500 hover:bg-yellow-600',
+    opacity: 'bg-gray-500 hover:bg-gray-600',
+    scale: 'bg-pink-500 hover:bg-pink-600'
+  };
+  
+  const colorClass = showPropertyLabel 
+    ? propertyColors[keyframe.property] || 'bg-blue-500 hover:bg-blue-600'
+    : 'bg-blue-500 hover:bg-blue-600';
+
   return (
     <div
-      className="absolute w-2 h-2 bg-blue-500 rounded-full cursor-pointer hover:bg-blue-600 -ml-1 -mt-1 top-1/2"
+      className={`absolute w-2 h-2 ${colorClass} rounded-full cursor-pointer -ml-1 -mt-1 top-1/2 relative group`}
       style={{ left: keyframe.time * pixelsPerSecond }}
       onClick={(e) => {
         e.stopPropagation();
@@ -364,7 +429,13 @@ const KeyframeMarker: React.FC<{
         }
       }}
       title={`${keyframe.property}: ${keyframe.value} @ ${keyframe.time.toFixed(2)}s (Shift+click to remove)`}
-    />
+    >
+      {showPropertyLabel && (
+        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          {keyframe.property[0].toUpperCase()}
+        </div>
+      )}
+    </div>
   );
 };
 

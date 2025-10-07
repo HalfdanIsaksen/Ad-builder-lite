@@ -64,6 +64,7 @@ export type AnimationTrack = {
   keyframes: Keyframe[];
   visible: boolean;
   locked: boolean;
+  expanded: boolean; // For collapsible property tracks
 };
 
 export type TimelineState = {

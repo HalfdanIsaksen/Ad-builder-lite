@@ -37,6 +37,7 @@ type Actions = {
     createAnimationTrack: (elementId: string) => void;
     toggleTrackVisibility: (trackId: string) => void;
     toggleTrackLock: (trackId: string) => void;
+    toggleTrackExpansion: (trackId: string) => void;
 };
 
 export const useEditorStore = create<State & Actions>()(
@@ -204,7 +205,8 @@ export const useEditorStore = create<State & Actions>()(
                         elementId,
                         keyframes: [keyframe],
                         visible: true,
-                        locked: false
+                        locked: false,
+                        expanded: true
                     });
                 }
 
@@ -245,7 +247,8 @@ export const useEditorStore = create<State & Actions>()(
                             elementId,
                             keyframes: [],
                             visible: true,
-                            locked: false
+                            locked: false,
+                            expanded: true
                         }]
                     }
                 };
@@ -265,6 +268,15 @@ export const useEditorStore = create<State & Actions>()(
                     ...s.timeline,
                     tracks: s.timeline.tracks.map(track =>
                         track.id === trackId ? { ...track, locked: !track.locked } : track
+                    )
+                }
+            })),
+
+            toggleTrackExpansion: (trackId) => set((s) => ({
+                timeline: {
+                    ...s.timeline,
+                    tracks: s.timeline.tracks.map(track =>
+                        track.id === trackId ? { ...track, expanded: !track.expanded } : track
                     )
                 }
             })),
