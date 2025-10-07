@@ -27,7 +27,7 @@ const Timeline: React.FC = () => {
         currentTime: timeline.currentTime,
         addKeyframe: typeof addKeyframe
     });
-    
+
     const timelineRef = useRef<HTMLDivElement>(null);
     const [dragState, setDragState] = useState<{ isDragging: boolean; startX: number; startTime: number }>({
         isDragging: false,
@@ -37,6 +37,8 @@ const Timeline: React.FC = () => {
 
     const pixelsPerSecond = 100; // Scale factor for timeline
     const timelineWidth = timeline.duration * pixelsPerSecond;
+    const timeToX = (t: number) => Math.round(t * pixelsPerSecond);
+    const xToTime = (x: number) => x / pixelsPerSecond;
 
     // Handle animation stop and cleanup
     useEffect(() => {
@@ -133,13 +135,13 @@ const Timeline: React.FC = () => {
             case 'opacity': currentValue = element.opacity || 1; break;
             case 'scale': currentValue = 1; break; // Default scale
         }
-console.log('Adding keyframe:', {
-        elementId,
-        property,
-        time: timeline.currentTime,
-        value: currentValue,
-        element
-    });
+        console.log('Adding keyframe:', {
+            elementId,
+            property,
+            time: timeline.currentTime,
+            value: currentValue,
+            element
+        });
         addKeyframe(elementId, property, timeline.currentTime, currentValue);
     };
 
@@ -166,7 +168,7 @@ console.log('Adding keyframe:', {
         const properties: AnimationProperty[] = ['x', 'y', 'width', 'height', 'rotation', 'opacity'];
 
         // Get all keyframes for this track for collapsed view
-        const allKeyframes = track.keyframes.sort((a, b) => a.time - b.time);
+        const allKeyframes = [...track.keyframes].sort((a, b) => a.time - b.time);
 
         return (
             <div key={track.id} className="border-b border-gray-200">
@@ -204,7 +206,7 @@ console.log('Adding keyframe:', {
                 {/* Collapsed view - single row showing all keyframes */}
                 {!track.expanded && allKeyframes.length > 0 && (
                     <div className="relative h-8 bg-white border-b border-gray-100 flex items-center">
-                        <div className="w-32 px-2 text-xs text-gray-600 border-r border-gray-200 flex items-center justify-between">
+                        <div className=" px-2 text-xs text-gray-600 border-r border-gray-200 flex items-center justify-between">
                             <span>All Properties</span>
                             <button
                                 onClick={() => toggleTrackExpansion(track.id)}
@@ -231,7 +233,7 @@ console.log('Adding keyframe:', {
                 {/* Expanded view - individual property rows */}
                 {track.expanded && properties.map(property => (
                     <div key={property} className="relative h-8 bg-white border-b border-gray-100 flex items-center">
-                        <div className="w-32 px-2 text-xs text-gray-600 border-r border-gray-200 flex items-center justify-between">
+                        <div className=" px-2 text-xs text-gray-600 border-r border-gray-200 flex items-center justify-between">
                             <span>{property}</span>
                             <button
                                 onClick={() => addKeyframeAtCurrentTime(track.elementId, property)}
@@ -384,7 +386,7 @@ console.log('Adding keyframe:', {
                             {/* Current Time Scrubber */}
                             <div
                                 className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 cursor-grab active:cursor-grabbing"
-                                style={{ left: timeline.currentTime * pixelsPerSecond }}
+                                style={{ left: timeToX(timeline.currentTime) }}
                                 onMouseDown={handleScrubberMouseDown}
                             >
                                 <div className="w-3 h-3 bg-red-500 rounded-full -ml-1.5 -mt-1.5 absolute"></div>
@@ -398,7 +400,7 @@ console.log('Adding keyframe:', {
                                 <div
                                     key={i}
                                     className="absolute top-0 bottom-0 w-px bg-gray-200"
-                                    style={{ left: i * pixelsPerSecond }}
+                                    style={{ left: timeToX(i) }}
                                 />
                             ))}
                         </div>
@@ -434,9 +436,10 @@ const KeyframeMarker: React.FC<{
     return (
         <div
             className={`absolute w-2 h-2 ${colorClass} rounded-full cursor-pointer`}
-            style={{ left: keyframe.time * pixelsPerSecond - 4,
+            style={{
+                left: keyframe.time * pixelsPerSecond,
                 transform: 'translateY(-50%)'
-             }}
+            }}
             onClick={(e) => {
                 e.stopPropagation();
                 if (e.shiftKey) {
