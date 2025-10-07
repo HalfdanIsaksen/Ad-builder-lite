@@ -133,13 +133,13 @@ const Timeline: React.FC = () => {
             case 'opacity': currentValue = element.opacity || 1; break;
             case 'scale': currentValue = 1; break; // Default scale
         }
-console.log('Adding keyframe:', {
-        elementId,
-        property,
-        time: timeline.currentTime,
-        value: currentValue,
-        element
-    });
+        console.log('Adding keyframe:', {
+            elementId,
+            property,
+            time: timeline.currentTime,
+            value: currentValue,
+            element
+        });
         addKeyframe(elementId, property, timeline.currentTime, currentValue);
     };
 
@@ -164,92 +164,54 @@ console.log('Adding keyframe:', {
         if (!element) return null;
 
         const properties: AnimationProperty[] = ['x', 'y', 'width', 'height', 'rotation', 'opacity'];
-
-        // Get all keyframes for this track for collapsed view
-        const allKeyframes = track.keyframes.sort((a, b) => a.time - b.time);
+        const allKeyframes = [...track.keyframes].sort((a, b) => a.time - b.time);
 
         return (
             <div key={track.id} className="border-b border-gray-200">
-                {/* Track Header */}
+                {/* Track Header (visibility/lock/expand) stays as-is */}
                 <div className="flex items-center h-10 bg-gray-50 px-2 border-r border-gray-200">
-                    <button
-                        onClick={() => toggleTrackVisibility(track.id)}
-                        className={`w-4 h-4 rounded mr-2 ${track.visible ? 'bg-blue-500' : 'bg-gray-300'}`}
-                        title="Toggle visibility"
-                    />
-                    <button
-                        onClick={() => toggleTrackLock(track.id)}
-                        className={`w-4 h-4 rounded mr-2 ${track.locked ? 'bg-red-500' : 'bg-gray-300'}`}
-                        title="Toggle lock"
-                    />
-                    <button
-                        onClick={() => toggleTrackExpansion(track.id)}
-                        className="flex items-center flex-1 text-left hover:bg-gray-100 rounded px-1 -mx-1"
-                        title="Click to expand/collapse properties"
-                    >
-                        <span className={`text-xs mr-2 transition-transform ${track.expanded ? 'rotate-90' : ''}`}>
-                            ▶
-                        </span>
+                    <button onClick={() => toggleTrackVisibility(track.id)} className={`w-4 h-4 rounded mr-2 ${track.visible ? 'bg-blue-500' : 'bg-gray-300'}`} />
+                    <button onClick={() => toggleTrackLock(track.id)} className={`w-4 h-4 rounded mr-2 ${track.locked ? 'bg-red-500' : 'bg-gray-300'}`} />
+                    <button onClick={() => toggleTrackExpansion(track.id)} className="flex items-center flex-1 text-left hover:bg-gray-100 rounded px-1 -mx-1">
+                        <span className={`text-xs mr-2 transition-transform ${track.expanded ? 'rotate-90' : ''}`}>▶</span>
                         <span className="text-sm font-medium truncate" title={`${element.type} #${element.id.slice(0, 4)}`}>
                             {element.type} #{element.id.slice(0, 4)}
                         </span>
                         {!track.expanded && allKeyframes.length > 0 && (
-                            <span className="text-xs text-gray-500 ml-2">
-                                ({allKeyframes.length} keyframes)
-                            </span>
+                            <span className="text-xs text-gray-500 ml-2">({allKeyframes.length} keyframes)</span>
                         )}
                     </button>
                 </div>
 
-                {/* Collapsed view - single row showing all keyframes */}
+                {/* Collapsed: unchanged except no extra gutter */}
                 {!track.expanded && allKeyframes.length > 0 && (
                     <div className="relative h-8 bg-white border-b border-gray-100 flex items-center">
-                        <div className="w-32 px-2 text-xs text-gray-600 border-r border-gray-200 flex items-center justify-between">
-                            <span>All Properties</span>
-                            <button
-                                onClick={() => toggleTrackExpansion(track.id)}
-                                className="w-4 h-4 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
-                                title="Expand to see individual properties"
-                            >
-                                ⋯
-                            </button>
-                        </div>
                         <div className="flex-1 relative">
-                            {allKeyframes.map(keyframe => (
+                            {allKeyframes.map(kf => (
                                 <KeyframeMarker
-                                    key={keyframe.id}
-                                    keyframe={keyframe}
+                                    key={kf.id}
+                                    keyframe={kf}
                                     pixelsPerSecond={pixelsPerSecond}
-                                    onRemove={() => removeKeyframe(keyframe.id)}
-                                    showPropertyLabel={true}
+                                    onRemove={() => removeKeyframe(kf.id)}
+                                    showPropertyLabel
                                 />
                             ))}
                         </div>
                     </div>
                 )}
 
-                {/* Expanded view - individual property rows */}
-                {track.expanded && properties.map(property => (
+                {/* Expanded: PER-PROPERTY rows with NO left gutter */}
+                {track.expanded && properties.map((property) => (
                     <div key={property} className="relative h-8 bg-white border-b border-gray-100 flex items-center">
-                        <div className="w-32 px-2 text-xs text-gray-600 border-r border-gray-200 flex items-center justify-between">
-                            <span>{property}</span>
-                            <button
-                                onClick={() => addKeyframeAtCurrentTime(track.elementId, property)}
-                                className="w-4 h-4 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                                title={`Add ${property} keyframe`}
-                            >
-                                +
-                            </button>
-                        </div>
                         <div className="flex-1 relative">
                             {track.keyframes
                                 .filter(kf => kf.property === property)
-                                .map(keyframe => (
+                                .map(kf => (
                                     <KeyframeMarker
-                                        key={keyframe.id}
-                                        keyframe={keyframe}
+                                        key={kf.id}
+                                        keyframe={kf}
                                         pixelsPerSecond={pixelsPerSecond}
-                                        onRemove={() => removeKeyframe(keyframe.id)}
+                                        onRemove={() => removeKeyframe(kf.id)}
                                     />
                                 ))}
                         </div>
@@ -258,6 +220,7 @@ console.log('Adding keyframe:', {
             </div>
         );
     };
+
 
     return (
         <div className="bg-white border-t border-gray-200 flex flex-col h-64">
@@ -334,16 +297,19 @@ console.log('Adding keyframe:', {
                             <span className="text-sm font-medium">Layers</span>
                         </div>
 
-                        {/* Element tracks */}
-                        {elements.map(element => {
-                            const hasTrack = timeline.tracks.some(t => t.elementId === element.id);
+                        {elements.map((element) => {
+                            const track = timeline.tracks.find(t => t.elementId === element.id);
+                            const hasTrack = !!track;
+                            const properties: AnimationProperty[] = ['x', 'y', 'width', 'height', 'rotation', 'opacity'];
+
                             return (
                                 <div key={element.id} className="border-b border-gray-200">
                                     <div className="h-10 flex items-center px-2 justify-between">
                                         <span className="text-sm truncate" title={element.type}>
                                             {element.type}
                                         </span>
-                                        {!hasTrack && (
+
+                                        {!hasTrack ? (
                                             <button
                                                 onClick={() => createTrackForElement(element.id)}
                                                 className="text-xs bg-green-500 text-white px-1 rounded hover:bg-green-600"
@@ -351,17 +317,37 @@ console.log('Adding keyframe:', {
                                             >
                                                 +
                                             </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => toggleTrackExpansion(track!.id)}
+                                                className="text-xs bg-gray-200 px-1 rounded hover:bg-gray-300"
+                                                title="Expand / collapse properties"
+                                            >
+                                                {track!.expanded ? '–' : '⋯'}
+                                            </button>
                                         )}
                                     </div>
-                                    {/*{hasTrack && (
-                                        <div className="text-xs text-gray-500 space-y-1">
-                                            {['x', 'y', 'width', 'height', 'rotation', 'opacity'].map(prop => (
-                                                <div key={prop} className="h-8 px-2 flex items-center border-b border-gray-100">
-                                                    {prop}
+
+                                    {/* NEW: property labels + add buttons live in the LEFT column */}
+                                    {hasTrack && track!.expanded && (
+                                        <div className="text-xs text-gray-600">
+                                            {properties.map((prop) => (
+                                                <div
+                                                    key={prop}
+                                                    className="h-8 px-2 flex items-center justify-between border-t border-gray-100"
+                                                >
+                                                    <span>{prop}</span>
+                                                    <button
+                                                        onClick={() => addKeyframeAtCurrentTime(element.id, prop)}
+                                                        className="w-4 h-4 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                                                        title={`Add ${prop} keyframe`}
+                                                    >
+                                                        +
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
-                                    )}*/}
+                                    )}
                                 </div>
                             );
                         })}
@@ -434,9 +420,10 @@ const KeyframeMarker: React.FC<{
     return (
         <div
             className={`absolute w-2 h-2 ${colorClass} rounded-full cursor-pointer`}
-            style={{ left: keyframe.time * pixelsPerSecond,
+            style={{
+                left: keyframe.time * pixelsPerSecond,
                 transform: 'translateY(-50%)'
-             }}
+            }}
             onClick={(e) => {
                 e.stopPropagation();
                 if (e.shiftKey) {
