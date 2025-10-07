@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyEl, CanvasPreset, ElementType, TimelineState, AnimationTrack, Keyframe, AnimationProperty } from '../Types';
+import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty } from '../Types';
 import { fileToDataURL } from '../utils/files';
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
@@ -42,7 +42,7 @@ type Actions = {
 
 export const useEditorStore = create<State & Actions>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             elements: [],
             selectedId: null,
             preset: 'desktop',
