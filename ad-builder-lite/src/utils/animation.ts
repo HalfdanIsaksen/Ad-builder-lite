@@ -149,7 +149,12 @@ export function getAnimatedValue(
 
   // If current time is before first keyframe, return first keyframe value
   if (currentTime <= keyframes[0].time) {
-    return keyframes[0].value;
+    if (typeof keyframes[0].value === 'object') {
+      return keyframes[0].value.x;
+    }
+      return keyframes[0].value;
+    
+    //return keyframes[0].value;
   }
 
   // If current time is after last keyframe, return last value
