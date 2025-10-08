@@ -327,8 +327,6 @@ const Timeline: React.FC = () => {
                                             </button>
                                         )}
                                     </div>
-
-                                    {/* NEW: property labels + add buttons live in the LEFT column */}
                                     {hasTrack && track!.expanded && (
                                         <div className="text-xs text-gray-600">
                                             {properties.map((prop) => (
