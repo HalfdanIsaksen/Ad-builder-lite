@@ -125,8 +125,9 @@ const Timeline: React.FC = () => {
 
         let currentValue = 0;
         switch (property) {
-            case 'x': currentValue = element.x; break;
-            case 'y': currentValue = element.y; break;
+            case 'position': currentValue = { x: element.x, y: element.y }; break;
+            //case 'x': currentValue = element.x; break;
+            //case 'y': currentValue = element.y; break;
             case 'width': currentValue = element.width; break;
             case 'height': currentValue = element.height; break;
             case 'rotation': currentValue = element.rotation || 0; break;
@@ -163,7 +164,7 @@ const Timeline: React.FC = () => {
         const element = elements.find(el => el.id === track.elementId);
         if (!element) return null;
 
-        const properties: AnimationProperty[] = ['x', 'y', 'width', 'height', 'rotation', 'opacity'];
+        const properties: AnimationProperty[] = ['position', 'width', 'height', 'rotation', 'opacity'];
         const allKeyframes = [...track.keyframes].sort((a, b) => a.time - b.time);
 
         return (
@@ -300,7 +301,7 @@ const Timeline: React.FC = () => {
                         {elements.map((element) => {
                             const track = timeline.tracks.find(t => t.elementId === element.id);
                             const hasTrack = !!track;
-                            const properties: AnimationProperty[] = ['x', 'y', 'width', 'height', 'rotation', 'opacity'];
+                            const properties: AnimationProperty[] = ['position', 'width', 'height', 'rotation', 'opacity'];
 
                             return (
                                 <div key={element.id} className="border-b border-gray-200">
