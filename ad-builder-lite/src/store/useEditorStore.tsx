@@ -181,7 +181,7 @@ export const useEditorStore = create<State & Actions>()(
                 timeline: { ...s.timeline, loop: !s.timeline.loop }
             })),
 
-            addKeyframe: (elementId, property, time, value) => set((s) => {
+            addKeyframe: (elementId, property, time, value : number | { x: number; y: number }) => set((s) => {
                 const trackIndex = s.timeline.tracks.findIndex(t => t.elementId === elementId);
                 let tracks = [...s.timeline.tracks];
                 

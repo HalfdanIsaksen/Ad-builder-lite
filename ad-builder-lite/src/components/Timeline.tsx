@@ -123,9 +123,9 @@ const Timeline: React.FC = () => {
         const element = elements.find(el => el.id === elementId);
         if (!element) return;
 
-        let currentValue = 0;
+        let currentValue : number | { x: number; y: number };
         switch (property) {
-            case 'position': currentValue = { x: element.x, y: element.y }; break;
+            case 'position': currentValue = { x: element.x || 0 , y: element.y || 0}; break;
             //case 'x': currentValue = element.x; break;
             //case 'y': currentValue = element.y; break;
             case 'width': currentValue = element.width; break;
@@ -133,6 +133,8 @@ const Timeline: React.FC = () => {
             case 'rotation': currentValue = element.rotation || 0; break;
             case 'opacity': currentValue = element.opacity || 1; break;
             case 'scale': currentValue = 1; break; // Default scale
+            default: 
+            currentValue = 0; // Fallback to 0 for unknown properties
         }
         console.log('Adding keyframe:', {
             elementId,
