@@ -123,9 +123,9 @@ const Timeline: React.FC = () => {
         const element = elements.find(el => el.id === elementId);
         if (!element) return;
 
-        let currentValue : number | { x: number; y: number };
+        let currentValue: number | { x: number; y: number };
         switch (property) {
-            case 'position': currentValue = { x: element.x || 0 , y: element.y || 0}; break;
+            case 'position': currentValue = { x: element.x || 0, y: element.y || 0 }; break;
             //case 'x': currentValue = element.x; break;
             //case 'y': currentValue = element.y; break;
             case 'width': currentValue = element.width; break;
@@ -133,8 +133,8 @@ const Timeline: React.FC = () => {
             case 'rotation': currentValue = element.rotation || 0; break;
             case 'opacity': currentValue = element.opacity || 1; break;
             case 'scale': currentValue = 1; break; // Default scale
-            default: 
-            currentValue = 0; // Fallback to 0 for unknown properties
+            default:
+                currentValue = 0; // Fallback to 0 for unknown properties
         }
         console.log('Adding keyframe:', {
             elementId,
@@ -405,8 +405,7 @@ const KeyframeMarker: React.FC<{
 }> = ({ keyframe, pixelsPerSecond, onRemove, showPropertyLabel = false }) => {
     // Different colors for different properties in collapsed view
     const propertyColors: Record<string, string> = {
-        x: 'bg-red-500 hover:bg-red-600',
-        y: 'bg-green-500 hover:bg-green-600',
+        position: 'bg-red-500 hover:bg-red-600',
         width: 'bg-blue-500 hover:bg-blue-600',
         height: 'bg-purple-500 hover:bg-purple-600',
         rotation: 'bg-yellow-500 hover:bg-yellow-600',
