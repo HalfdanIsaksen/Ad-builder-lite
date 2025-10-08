@@ -47,14 +47,14 @@ export type CanvasPreset = 'desktop' | 'tablet' | 'mobile';
 // Animation types
 export type EasingType = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce' | 'elastic';
 
-export type AnimationProperty = 'x' | 'y' | 'width' | 'height' | 'rotation' | 'opacity' | 'scale';
+export type AnimationProperty = 'position' | 'width' | 'height' | 'rotation' | 'opacity' | 'scale';
 
 export type Keyframe = {
   id: string;
   time: number; // in seconds
   elementId: string;
   property: AnimationProperty;
-  value: number;
+  value: number | { x: number; y: number }; // value can be a number or an object for position
   easing?: EasingType;
 };
 
