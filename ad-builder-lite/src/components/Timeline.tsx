@@ -125,9 +125,11 @@ const Timeline: React.FC = () => {
 
         let currentValue: number | { x: number; y: number };
         switch (property) {
-            case 'position': currentValue = { x: element.x || 0, y: element.y || 0 }; break;
-            //case 'x': currentValue = element.x; break;
-            //case 'y': currentValue = element.y; break;
+            case 'position': 
+                const currentX = typeof element.x === 'number' ? element.x : 0;
+                const currentY = typeof element.y === 'number' ? element.y : 0;
+                currentValue = { x: currentX, y: currentY };
+                break;
             case 'width': currentValue = element.width; break;
             case 'height': currentValue = element.height; break;
             case 'rotation': currentValue = element.rotation || 0; break;
@@ -417,6 +419,8 @@ const KeyframeMarker: React.FC<{
         ? propertyColors[keyframe.property] || 'bg-blue-500 hover:bg-blue-600'
         : 'bg-blue-500 hover:bg-blue-600';
 
+    // Debug log to see what value is stored
+    console.log('KeyframeMarker value:', keyframe.property, keyframe.value);
     return (
         <div
             className={`absolute w-2 h-2 ${colorClass} rounded-full cursor-pointer`}
