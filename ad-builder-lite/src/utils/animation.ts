@@ -53,62 +53,92 @@ export function createKonvaAnimations(
     // Find keyframes that occur after current time
     const futureKeyframes = keyframes.filter(kf => kf.time > currentTime);
     if (futureKeyframes.length === 0) return;
+    // Handle position property specially
+    if (property === 'position') {
+      // Set initial position based on current time
+      const initialPosition = getAnimatedPosition(elementId, currentTime, tracks);
+      node.setAttr('x', initialPosition.x);
+      node.setAttr('y', initialPosition.y);
+      node.getLayer()?.batchDraw();
 
-    // Set initial value based on current time (smooth transition from scrubbing)
-    const initialValue = getAnimatedValue(
-      property === 'scale' ? 1 : node.getAttr(property) || 0,
-      property,
-      elementId,
-      currentTime,
-      tracks
-    );
-
-    // Set the starting position immediately
-    if (property === 'scale') {
-      node.scaleX(initialValue);
-      node.scaleY(initialValue);
+      // Create sequential tweens for future position keyframes
+      let lastTime = currentTime;
+      
+      futureKeyframes.forEach((kf) => {
+        const duration = (kf.time - lastTime) * 1000 / playbackSpeed;
+        const delay = (lastTime - currentTime) * 1000 / playbackSpeed;
+        
+         const position = typeof kf.value === 'object' && 'x' in kf.value 
+          ? kf.value 
+          : { x: 0, y: 0 };
+        
+        const tween = new Konva.Tween({
+          node,
+          duration,
+          easing: getKonvaEasing(kf.easing || 'ease-out'),
+          x: position.x,
+          y: position.y
+        });
+        
+        if (delay > 0) {
+          setTimeout(() => tween.play(), delay);
+        } else {
+          setTimeout(() => tween.play(), 16);
+        }
+        
+        animations.push(tween);
+        lastTime = kf.time;
+      });
     } else {
-      node.setAttr(property, initialValue);
-    }
-    
-    // Force a redraw to prevent flicker
-    node.getLayer()?.batchDraw();
-    
-    // Create sequential tweens for future keyframes
-    let lastTime = currentTime;
-    
-    futureKeyframes.forEach((kf) => {
-      const duration = (kf.time - lastTime) * 1000 / playbackSpeed; // Convert to ms and apply speed
-      const delay = (lastTime - currentTime) * 1000 / playbackSpeed; // Delay relative to animation start
+      // Handle other properties (width, height, rotation, opacity, scale)
+      const initialValue = getAnimatedValue(node.getAttr(property) || 0, 
+      property, 
+      elementId, 
+      currentTime, 
+      tracks
+      );
       
-      const tweenConfig: any = {
-        node,
-        duration,
-        easing: getKonvaEasing(kf.easing || 'ease-out')
-      };
-
-      // Set the property to animate
       if (property === 'scale') {
-        tweenConfig.scaleX = kf.value;
-        tweenConfig.scaleY = kf.value;
+        node.scaleX(initialValue);
+        node.scaleY(initialValue);
       } else {
-        tweenConfig[property] = kf.value;
+        node.setAttr(property, initialValue);
       }
+      node.getLayer()?.batchDraw();
+      
+      let lastTime = currentTime;
+      
+      futureKeyframes.forEach((kf) => {
+        const duration = (kf.time - lastTime) * 1000 / playbackSpeed;
+        const delay = (lastTime - currentTime) * 1000 / playbackSpeed;
+        
+        const tweenConfig: any = {
+          node,
+          duration,
+          easing: getKonvaEasing(kf.easing || 'ease-out')
+        };
 
-      const tween = new Konva.Tween(tweenConfig);
-      
-      // Delay the start of this tween
-      if (delay > 0) {
-        setTimeout(() => tween.play(), delay);
-      } else {
-        // Small delay to ensure initial position is set
-        setTimeout(() => tween.play(), 16); // ~1 frame delay
-      }
-      
-      animations.push(tween);
-      
-      lastTime = kf.time;
-    });
+        const value = typeof kf.value === 'number' ? kf.value : 1;
+
+        if (property === 'scale') {
+          tweenConfig.scaleX = value;
+          tweenConfig.scaleY = value;
+        } else {
+          tweenConfig[property] = value;
+        }
+
+        const tween = new Konva.Tween(tweenConfig);
+        
+        if (delay > 0) {
+          setTimeout(() => tween.play(), delay);
+        } else {
+          setTimeout(() => tween.play(), 16);
+        }
+        
+        animations.push(tween);
+        lastTime = kf.time;
+      });
+    }
   });
 
   activeAnimations.set(elementId, animations);
@@ -133,7 +163,59 @@ export function stopAllAnimations(): void {
   activeAnimations.clear();
 }
 
-// Get the animated value for a property at a specific time (for timeline scrubbing)
+export function getAnimatedPosition(
+  elementId: string,
+  currentTime: number,
+  tracks: AnimationTrack[]
+): { x: number; y: number } {
+  const track = tracks.find(t => t.elementId === elementId);
+  if (!track) return { x: 0, y: 0 };
+
+  const keyframes = track.keyframes.filter(kf => kf.property === 'position').sort((a, b) => a.time - b.time);
+  if (keyframes.length === 0) return { x: 0, y: 0 };
+
+  // If current time is before first keyframe
+  if (currentTime <= keyframes[0].time) {
+    const value = keyframes[0].value;
+    return typeof value === 'object' && 'x' in value ? value : { x: 0, y: 0 };
+  }
+
+  // If current time is after last keyframe
+  if (currentTime >= keyframes[keyframes.length - 1].time) {
+    const value = keyframes[keyframes.length - 1].value;
+    return typeof value === 'object' && 'x' in value ? value : { x: 0, y: 0 };
+  }
+
+  // Find the two keyframes to interpolate between
+  for (let i = 0; i < keyframes.length - 1; i++) {
+    if (currentTime >= keyframes[i].time && currentTime <= keyframes[i + 1].time) {
+      const prevKeyframe = keyframes[i];
+      const nextKeyframe = keyframes[i + 1];
+      
+      const prevPos = typeof prevKeyframe.value === 'object' && 'x' in prevKeyframe.value 
+        ? prevKeyframe.value 
+        : { x: 0, y: 0 };
+      const nextPos = typeof nextKeyframe.value === 'object' && 'x' in nextKeyframe.value 
+        ? nextKeyframe.value 
+        : { x: 0, y: 0 };
+      
+      const duration = nextKeyframe.time - prevKeyframe.time;
+      const progress = duration > 0 ? (currentTime - prevKeyframe.time) / duration : 0;
+      
+      const easing = getKonvaEasing(nextKeyframe.easing || 'ease-out');
+      const easedProgress = easing(progress, 0, 1, 1);
+      
+      return {
+        x: prevPos.x + (nextPos.x - prevPos.x) * easedProgress,
+        y: prevPos.y + (nextPos.y - prevPos.y) * easedProgress
+      };
+    }
+  }
+
+  return { x: 0, y: 0 };
+}
+
+// Get the animated value for a single property at a specific time (for timeline scrubbing)
 export function getAnimatedValue(
   baseValue: number,
   property: string,
@@ -149,12 +231,23 @@ export function getAnimatedValue(
 
   // If current time is before first keyframe, return first keyframe value
   if (currentTime <= keyframes[0].time) {
-    return keyframes[0].value;
+    const value = keyframes[0].value;
+    // Handle position property specially - we shouldn't be calling this for position
+    if (typeof value === 'object' && 'x' in value) {
+      console.warn(`getAnimatedValue called with position property - use getAnimatedPosition instead`);
+      return baseValue;
+    }
+    return typeof value === 'number' ? value : baseValue;
   }
 
   // If current time is after last keyframe, return last value
   if (currentTime >= keyframes[keyframes.length - 1].time) {
-    return keyframes[keyframes.length - 1].value;
+    const value = keyframes[keyframes.length - 1].value;
+    if (typeof value === 'object' && 'x' in value) {
+      console.warn(`getAnimatedValue called with position property - use getAnimatedPosition instead`);
+      return baseValue;
+    }
+    return typeof value === 'number' ? value : baseValue;
   }
 
   // Find the two keyframes to interpolate between
@@ -173,6 +266,10 @@ export function getAnimatedValue(
     return baseValue;
   }
 
+  // Ensure we're working with numbers, not position objects
+  const prevValue = typeof prevKeyframe.value === 'number' ? prevKeyframe.value : baseValue;
+  const nextValue = typeof nextKeyframe.value === 'number' ? nextKeyframe.value : baseValue;
+
   // Calculate interpolation progress (0-1)
   const duration = nextKeyframe.time - prevKeyframe.time;
   const progress = duration > 0 ? (currentTime - prevKeyframe.time) / duration : 0;
@@ -182,10 +279,10 @@ export function getAnimatedValue(
   const easedProgress = easing(progress, 0, 1, 1);
 
   // Interpolate between values
-  return prevKeyframe.value + (nextKeyframe.value - prevKeyframe.value) * easedProgress;
+  return prevValue + (nextValue - prevValue) * easedProgress;
 }
 
-// Apply all animations to an element
+// Apply all animations to an element (for timeline scrubbing)
 export function getAnimatedElement(
   element: AnyEl,
   currentTime: number,
@@ -193,23 +290,40 @@ export function getAnimatedElement(
 ): AnyEl {
   const animatedElement = { ...element };
 
-  // Apply animations for each supported property
-  animatedElement.x = getAnimatedValue(element.x, 'x', element.id, currentTime, tracks);
-  animatedElement.y = getAnimatedValue(element.y, 'y', element.id, currentTime, tracks);
-  animatedElement.width = getAnimatedValue(element.width, 'width', element.id, currentTime, tracks);
-  animatedElement.height = getAnimatedValue(element.height, 'height', element.id, currentTime, tracks);
-  animatedElement.rotation = getAnimatedValue(element.rotation || 0, 'rotation', element.id, currentTime, tracks);
-  animatedElement.opacity = getAnimatedValue(element.opacity || 1, 'opacity', element.id, currentTime, tracks);
+  // Handle position separately using the dedicated function
+  const position = getAnimatedPosition(element.id, currentTime, tracks);
+  if (position.x !== 0 || position.y !== 0) {
+    animatedElement.x = position.x;
+    animatedElement.y = position.y;
+  } else {
+    // If no position animation, keep original values
+    animatedElement.x = element.x;
+    animatedElement.y = element.y;
+  }
+
+  // Handle other properties with proper fallbacks
+  const animatedWidth = getAnimatedValue(element.width, 'width', element.id, currentTime, tracks);
+  if (animatedWidth !== element.width) animatedElement.width = animatedWidth;
+
+  const animatedHeight = getAnimatedValue(element.height, 'height', element.id, currentTime, tracks);
+  if (animatedHeight !== element.height) animatedElement.height = animatedHeight;
+
+  const animatedRotation = getAnimatedValue(element.rotation || 0, 'rotation', element.id, currentTime, tracks);
+  animatedElement.rotation = animatedRotation;
+
+  const animatedOpacity = getAnimatedValue(element.opacity || 1, 'opacity', element.id, currentTime, tracks);
+  animatedElement.opacity = animatedOpacity;
 
   // Scale is applied as a multiplier to width/height
   const scale = getAnimatedValue(1, 'scale', element.id, currentTime, tracks);
-  if (scale !== 1) {
+  if (scale !== 1 && scale > 0) {
     animatedElement.width *= scale;
     animatedElement.height *= scale;
   }
 
   return animatedElement;
 }
+
 
 // Check if an element has any animations
 export function hasAnimations(elementId: string, tracks: AnimationTrack[]): boolean {

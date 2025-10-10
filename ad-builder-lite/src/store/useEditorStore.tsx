@@ -31,7 +31,7 @@ type Actions = {
     setTimelineDuration: (duration: number) => void;
     setPlaybackSpeed: (speed: number) => void;
     toggleLoop: () => void;
-    addKeyframe: (elementId: string, property: AnimationProperty, time: number, value: number) => void;
+    addKeyframe: (elementId: string, property: AnimationProperty, time: number, value: number | { x: number; y: number }) => void;
     updateKeyframe: (keyframeId: string, updates: Partial<Keyframe>) => void;
     removeKeyframe: (keyframeId: string) => void;
     createAnimationTrack: (elementId: string) => void;
@@ -181,7 +181,7 @@ export const useEditorStore = create<State & Actions>()(
                 timeline: { ...s.timeline, loop: !s.timeline.loop }
             })),
 
-            addKeyframe: (elementId, property, time, value) => set((s) => {
+            addKeyframe: (elementId, property, time, value : number | { x: number; y: number }) => set((s) => {
                 const trackIndex = s.timeline.tracks.findIndex(t => t.elementId === elementId);
                 let tracks = [...s.timeline.tracks];
                 

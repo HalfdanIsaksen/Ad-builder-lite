@@ -123,15 +123,20 @@ const Timeline: React.FC = () => {
         const element = elements.find(el => el.id === elementId);
         if (!element) return;
 
-        let currentValue = 0;
+        let currentValue: number | { x: number; y: number };
         switch (property) {
-            case 'x': currentValue = element.x; break;
-            case 'y': currentValue = element.y; break;
+            case 'position': 
+                const currentX = typeof element.x === 'number' ? element.x : 0;
+                const currentY = typeof element.y === 'number' ? element.y : 0;
+                currentValue = { x: currentX, y: currentY };
+                break;
             case 'width': currentValue = element.width; break;
             case 'height': currentValue = element.height; break;
             case 'rotation': currentValue = element.rotation || 0; break;
             case 'opacity': currentValue = element.opacity || 1; break;
             case 'scale': currentValue = 1; break; // Default scale
+            default:
+                currentValue = 0; // Fallback to 0 for unknown properties
         }
         console.log('Adding keyframe:', {
             elementId,
@@ -163,7 +168,7 @@ const Timeline: React.FC = () => {
         const element = elements.find(el => el.id === track.elementId);
         if (!element) return null;
 
-        const properties: AnimationProperty[] = ['x', 'y', 'width', 'height', 'rotation', 'opacity'];
+        const properties: AnimationProperty[] = ['position', 'width', 'height', 'rotation', 'opacity'];
         const allKeyframes = [...track.keyframes].sort((a, b) => a.time - b.time);
 
         return (
@@ -300,7 +305,7 @@ const Timeline: React.FC = () => {
                         {elements.map((element) => {
                             const track = timeline.tracks.find(t => t.elementId === element.id);
                             const hasTrack = !!track;
-                            const properties: AnimationProperty[] = ['x', 'y', 'width', 'height', 'rotation', 'opacity'];
+                            const properties: AnimationProperty[] = ['position', 'width', 'height', 'rotation', 'opacity'];
 
                             return (
                                 <div key={element.id} className="border-b border-gray-200">
@@ -402,8 +407,7 @@ const KeyframeMarker: React.FC<{
 }> = ({ keyframe, pixelsPerSecond, onRemove, showPropertyLabel = false }) => {
     // Different colors for different properties in collapsed view
     const propertyColors: Record<string, string> = {
-        x: 'bg-red-500 hover:bg-red-600',
-        y: 'bg-green-500 hover:bg-green-600',
+        position: 'bg-red-500 hover:bg-red-600',
         width: 'bg-blue-500 hover:bg-blue-600',
         height: 'bg-purple-500 hover:bg-purple-600',
         rotation: 'bg-yellow-500 hover:bg-yellow-600',
@@ -415,6 +419,8 @@ const KeyframeMarker: React.FC<{
         ? propertyColors[keyframe.property] || 'bg-blue-500 hover:bg-blue-600'
         : 'bg-blue-500 hover:bg-blue-600';
 
+    // Debug log to see what value is stored
+    console.log('KeyframeMarker value:', keyframe.property, keyframe.value);
     return (
         <div
             className={`absolute w-2 h-2 ${colorClass} rounded-full cursor-pointer`}
