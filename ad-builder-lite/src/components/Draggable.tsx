@@ -65,7 +65,7 @@ export default function Draggable({
       node.opacity(animatedEl.opacity || 1);
       
       // Handle scale
-      const scale = getAnimatedValue(1, 'scale', el.id, timeline.currentTime, timeline.tracks);
+      const scale = getAnimatedValue(el.id, 'scale', timeline.currentTime, timeline.tracks);
       node.scaleX(scale);
       node.scaleY(scale);
       
