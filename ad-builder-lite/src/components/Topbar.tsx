@@ -38,7 +38,7 @@ export default function Topbar() {
           />
 
           <button className="btn" onClick={() => importJSONDialog()}>
-            Import JSON
+            Import Template
           </button>
 
           {/* Unified Export button -> opens modal */}
