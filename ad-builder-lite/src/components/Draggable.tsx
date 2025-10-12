@@ -10,6 +10,7 @@ type EventProps = {
   onMouseDown: (e: any) => void;
   onTap: () => void;
   onDragEnd: (e: any) => void;
+  onTransformStart?: (e: any) => void;
   onTransformEnd: (e: any) => void;
 };
 
@@ -27,7 +28,7 @@ export default function Draggable({
 
   // Only use manual interpolation when NOT playing (for scrubbing)
   // When playing, let Konva handle all animations
-  const animatedEl = timeline.isPlaying 
+  const animatedEl = timeline.isPlaying
     ? el  // Use base element, Konva will animate the actual node
     : getAnimatedElement(el, timeline.currentTime, timeline.tracks); // Manual interpolation for scrubbing
 
@@ -45,16 +46,16 @@ export default function Draggable({
     if (timeline.isPlaying) {
       // Start Konva animations from current timeline position
       createKonvaAnimations(
-        node, 
-        el.id, 
-        timeline.tracks, 
-        timeline.currentTime, 
+        node,
+        el.id,
+        timeline.tracks,
+        timeline.currentTime,
         timeline.playbackSpeed
       );
     } else {
       // Stop animations and set to current timeline position
       stopElementAnimations(el.id);
-      
+
       // Set node to current timeline position for smooth transition
       const animatedEl = getAnimatedElement(el, timeline.currentTime, timeline.tracks);
       node.x(animatedEl.x);
@@ -63,12 +64,12 @@ export default function Draggable({
       node.height(animatedEl.height);
       node.rotation(animatedEl.rotation || 0);
       node.opacity(animatedEl.opacity || 1);
-      
+
       // Handle scale
       const scale = getAnimatedValue(1, 'scale', el.id, timeline.currentTime, timeline.tracks);
       node.scaleX(scale);
       node.scaleY(scale);
-      
+
       node.getLayer()?.batchDraw();
     }
 
@@ -77,12 +78,13 @@ export default function Draggable({
     };
   }, [timeline.isPlaying, el.id, timeline.tracks, timeline.currentTime]);
 
+  const transformStartRef = useRef<{ width: number; height: number; rotation: number } | null>(null);
+
   const eventProps: EventProps = {
-    draggable: !timeline.isPlaying, // Disable dragging during animation playback
+    draggable: !timeline.isPlaying,
     onMouseDown: () => !timeline.isPlaying && select(el.id),
     onTap: () => !timeline.isPlaying && select(el.id),
 
-    // IMPORTANT: positions reported are in the parent group's (scaled) space.
     onDragEnd: (e: any) => {
       const n = e.target;
       update(el.id, {
@@ -91,26 +93,49 @@ export default function Draggable({
       } as any);
     },
 
-    // IMPORTANT: width/height use the node's local scale; position needs unscale.
+    // Track when transformation starts
+    onTransformStart: (e: any) => {
+      transformStartRef.current = {
+        width: el.width || 0,
+        height: el.height || 0,
+        rotation: el.rotation || 0
+      };
+    },
+
     onTransformEnd: (e: any) => {
       const n = e.target;
       const scaleX = n.scaleX();
       const scaleY = n.scaleY();
+      const currentRotation = n.rotation();
 
-      const newW = Math.max(5, (el.width || 0) * scaleX);
-      const newH = Math.max(5, (el.height || 0) * scaleY);
+      const startData = transformStartRef.current;
 
-      update(el.id, {
-        x: n.x(),
-        y: n.y(),
-        width: newW,
-        height: newH,
-        rotation: n.rotation(),
-      } as any);
+      if (startData) {
+        // Check if rotation changed significantly (more than 1 degree)
+        //const rotationChanged = Math.abs(currentRotation - startData.rotation) > 1;
 
-      // reset runtime scale to keep transformer consistent
+        // Check if scale changed significantly (more than 5%)
+        const scaleChanged = Math.abs(scaleX - 1) > 0.05 || Math.abs(scaleY - 1) > 0.05;
+
+        const updateData: any = {
+          x: n.x(),
+          y: n.y(),
+          rotation: currentRotation,
+        };
+
+        // Only update dimensions if scale actually changed (user resized)
+        if (scaleChanged) {
+          updateData.width = Math.max(5, startData.width * scaleX);
+          updateData.height = Math.max(5, startData.height * scaleY);
+        }
+
+        update(el.id, updateData);
+      }
+
+      // Reset scale and clear tracking
       n.scaleX(1);
       n.scaleY(1);
+      transformStartRef.current = null;
     },
   };
 
