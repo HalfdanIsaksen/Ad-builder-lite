@@ -95,7 +95,7 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
               onClick={() => setTab('json')}
               className={`px-3 py-1.5 rounded-lg text-sm ${tab === 'json' ? 'bg-white shadow border border-neutral-200' : 'text-neutral-600'}`}
             >
-              JSON
+              Template
             </button>
           </div>
         </div>
