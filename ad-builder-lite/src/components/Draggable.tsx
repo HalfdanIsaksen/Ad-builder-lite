@@ -94,7 +94,7 @@ export default function Draggable({
     },
 
     // Track when transformation starts
-    onTransformStart: (e: any) => {
+    onTransformStart: () => {
       transformStartRef.current = {
         width: el.width || 0,
         height: el.height || 0,
@@ -103,38 +103,49 @@ export default function Draggable({
     },
 
     onTransformEnd: (e: any) => {
-      const n = e.target;
-      const scaleX = n.scaleX();
-      const scaleY = n.scaleY();
+      const n = e.target as any;
+      // read what transformer did
+      let scaleX = n.scaleX();
+      let scaleY = n.scaleY();
       const currentRotation = n.rotation();
+
+      // snap near-1 scale to exactly 1 to avoid tiny cumulative errors
+      const EPS = 0.001;
+      if (Math.abs(scaleX - 1) < EPS) scaleX = 1;
+      if (Math.abs(scaleY - 1) < EPS) scaleY = 1;
 
       const startData = transformStartRef.current;
 
       if (startData) {
-        // Check if rotation changed significantly (more than 1 degree)
-        //const rotationChanged = Math.abs(currentRotation - startData.rotation) > 1;
-
-        // Check if scale changed significantly (more than 5%)
-        const scaleChanged = Math.abs(scaleX - 1) > 0.05 || Math.abs(scaleY - 1) > 0.05;
-
         const updateData: any = {
           x: n.x(),
           y: n.y(),
           rotation: currentRotation,
         };
 
-        // Only update dimensions if scale actually changed (user resized)
+        // did user actually resize (not just rotate)?
+        const SCALE_THRESHOLD = 0.08; // 8% feels safer than 5% for noisy rotations
+        const scaleChanged =
+          Math.abs(scaleX - 1) > SCALE_THRESHOLD || Math.abs(scaleY - 1) > SCALE_THRESHOLD;
+
         if (scaleChanged) {
+          // real resize: persist new logical size
           updateData.width = Math.max(5, startData.width * scaleX);
           updateData.height = Math.max(5, startData.height * scaleY);
+        } else {
+          // rotation-only: explicitly restore the node’s logical size
+          // so we don't “bake” any accidental scale into width/height
+          n.width(startData.width);
+          n.height(startData.height);
         }
 
         update(el.id, updateData);
       }
 
-      // Reset scale and clear tracking
+      // Always clear scale on the node so next transform starts fresh
       n.scaleX(1);
       n.scaleY(1);
+
       transformStartRef.current = null;
     },
   };
@@ -209,6 +220,8 @@ export default function Draggable({
         ref={frameRef}
         x={i.x}
         y={i.y}
+        width={i.width}
+        height={i.height}
         opacity={i.opacity ?? 1}
         rotation={i.rotation ?? 0}
         clipFunc={clipRect}
