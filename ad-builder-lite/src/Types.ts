@@ -40,6 +40,11 @@ export type ButtonEl = BaseEl & {
     imageFit?: 'cover' | 'contain' | 'stretch';
 };
 
+export type RectEæl = BaseEl & {
+    type: 'rect';
+    fill?: string;
+};
+
 export type AnyEl = TextEl | ImageEl | ButtonEl;
 
 export type CanvasPreset = 'desktop' | 'tablet' | 'mobile';
@@ -75,3 +80,8 @@ export type TimelineState = {
   loop: boolean;
   tracks: AnimationTrack[];
 };
+
+
+//tool bar types
+export type Tool = 'select' | 'draw-text' | 'zoom';
+
