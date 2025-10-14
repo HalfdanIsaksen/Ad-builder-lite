@@ -55,6 +55,7 @@ export type CircleEl = {
     visible?: boolean;
     fill?: string;
 }
+
 export type AnyEl = TextEl | ImageEl | ButtonEl;
 
 export type CanvasPreset = 'desktop' | 'tablet' | 'mobile';
