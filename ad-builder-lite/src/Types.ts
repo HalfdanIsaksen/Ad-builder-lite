@@ -40,11 +40,21 @@ export type ButtonEl = BaseEl & {
     imageFit?: 'cover' | 'contain' | 'stretch';
 };
 
-export type RectEæl = BaseEl & {
+export type RectEl = BaseEl & {
     type: 'rect';
     fill?: string;
 };
 
+export type CircleEl = {
+    type: 'circle';
+    id: string;
+    x: number; y: number;
+    radius: number;
+    rotation?: number;
+    opacity?: number;
+    visible?: boolean;
+    fill?: string;
+}
 export type AnyEl = TextEl | ImageEl | ButtonEl;
 
 export type CanvasPreset = 'desktop' | 'tablet' | 'mobile';
