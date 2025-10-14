@@ -9,6 +9,17 @@ export default function Sidebar() {
                 <button className="btn" onClick={() => add('text')}>+ Text</button>
                 <button className="btn" onClick={() => add('image')}>+ Image</button>
                 <button className="btn" onClick={() => add('button')}>+ Button</button>
+                {/*<button className="btn" onClick={}>+ select</button>*/}
+                <select className="input">
+                    <option value="stretch">Rectangle</option>
+                    <option value="stretch">Circle</option>
+                    <option value="stretch">Ellipse</option>
+                    <option value="stretch">Polygon</option>
+                    <option value="stretch">Star</option>
+                </select>
+               
+
+
             </div>
         </aside>
     );
