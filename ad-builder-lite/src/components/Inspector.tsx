@@ -60,7 +60,7 @@ export default function Inspector() {
                     <label className="label">Image URL</label>
                     <input className="input" value={(el as any).src} onChange={onStr('src' as any)} />
                     <button className="btn" onClick={() => fileRef.current?.click()}>Replace from file…</button>
-                    <select
+                    {/*<select
                                 className="input"
                                 value={(el as any).imageFit ?? 'cover'}
                                 onChange={(e) => updateElement(el.id, { imageFit: e.target.value as any })}
@@ -68,7 +68,7 @@ export default function Inspector() {
                                 <option value="cover">Cover</option>
                                 <option value="contain">Contain</option>
                                 <option value="stretch">Stretch</option>
-                            </select>
+                            </select>*/}
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
                 </div>
             )}

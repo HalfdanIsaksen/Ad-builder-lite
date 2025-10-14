@@ -183,10 +183,10 @@ export default function Draggable({
     const natH = i.naturalH ?? img?.height ?? 1;
 
     if (img && natW > 0 && natH > 0) {
-      const sx = i.width / natW;
-      const sy = i.height / natH;
+      //const sx = i.width / natW;
+      //const sy = i.height / natH;
 
-      if ((i.imageFit ?? 'cover') === 'contain') {
+      /*if ((i.imageFit ?? 'cover') === 'contain') {
         const s = Math.min(sx, sy);
         drawW = Math.round(natW * s);
         drawH = Math.round(natH * s);
@@ -199,13 +199,13 @@ export default function Draggable({
         drawX = Math.round((i.width - drawW) / 2);
         drawY = Math.round((i.height - drawH) / 2);
         // parts outside the frame will be clipped by Group below
-      } else {
+      } else {*/
         // 'stretch' (fill the frame regardless of aspect ratio)
         drawW = i.width;
         drawH = i.height;
         drawX = 0;
         drawY = 0;
-      }
+      //}
     }
 
     // Clip the image to the frame rect so 'cover' doesn't spill out
