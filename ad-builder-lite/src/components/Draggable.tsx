@@ -10,6 +10,7 @@ type EventProps = {
   onMouseDown: (e: any) => void;
   onTap: () => void;
   onDragEnd: (e: any) => void;
+  onTransformStart?: (e: any) => void;
   onTransformEnd: (e: any) => void;
 };
 
@@ -27,7 +28,7 @@ export default function Draggable({
 
   // Only use manual interpolation when NOT playing (for scrubbing)
   // When playing, let Konva handle all animations
-  const animatedEl = timeline.isPlaying 
+  const animatedEl = timeline.isPlaying
     ? el  // Use base element, Konva will animate the actual node
     : getAnimatedElement(el, timeline.currentTime, timeline.tracks); // Manual interpolation for scrubbing
 
@@ -45,16 +46,16 @@ export default function Draggable({
     if (timeline.isPlaying) {
       // Start Konva animations from current timeline position
       createKonvaAnimations(
-        node, 
-        el.id, 
-        timeline.tracks, 
-        timeline.currentTime, 
+        node,
+        el.id,
+        timeline.tracks,
+        timeline.currentTime,
         timeline.playbackSpeed
       );
     } else {
       // Stop animations and set to current timeline position
       stopElementAnimations(el.id);
-      
+
       // Set node to current timeline position for smooth transition
       const animatedEl = getAnimatedElement(el, timeline.currentTime, timeline.tracks);
       node.x(animatedEl.x);
@@ -63,12 +64,12 @@ export default function Draggable({
       node.height(animatedEl.height);
       node.rotation(animatedEl.rotation || 0);
       node.opacity(animatedEl.opacity || 1);
-      
+
       // Handle scale
       const scale = getAnimatedValue(1, 'scale', el.id, timeline.currentTime, timeline.tracks);
       node.scaleX(scale);
       node.scaleY(scale);
-      
+
       node.getLayer()?.batchDraw();
     }
 
@@ -77,12 +78,13 @@ export default function Draggable({
     };
   }, [timeline.isPlaying, el.id, timeline.tracks, timeline.currentTime]);
 
+  const transformStartRef = useRef<{ width: number; height: number; rotation: number } | null>(null);
+
   const eventProps: EventProps = {
-    draggable: !timeline.isPlaying, // Disable dragging during animation playback
+    draggable: !timeline.isPlaying,
     onMouseDown: () => !timeline.isPlaying && select(el.id),
     onTap: () => !timeline.isPlaying && select(el.id),
 
-    // IMPORTANT: positions reported are in the parent group's (scaled) space.
     onDragEnd: (e: any) => {
       const n = e.target;
       update(el.id, {
@@ -91,26 +93,60 @@ export default function Draggable({
       } as any);
     },
 
-    // IMPORTANT: width/height use the node's local scale; position needs unscale.
+    // Track when transformation starts
+    onTransformStart: () => {
+      transformStartRef.current = {
+        width: el.width || 0,
+        height: el.height || 0,
+        rotation: el.rotation || 0
+      };
+    },
+
     onTransformEnd: (e: any) => {
-      const n = e.target;
-      const scaleX = n.scaleX();
-      const scaleY = n.scaleY();
+      const n = e.target as any;
+      // read what transformer did
+      let scaleX = n.scaleX();
+      let scaleY = n.scaleY();
+      const currentRotation = n.rotation();
 
-      const newW = Math.max(5, (el.width || 0) * scaleX);
-      const newH = Math.max(5, (el.height || 0) * scaleY);
+      // snap near-1 scale to exactly 1 to avoid tiny cumulative errors
+      const EPS = 0.001;
+      if (Math.abs(scaleX - 1) < EPS) scaleX = 1;
+      if (Math.abs(scaleY - 1) < EPS) scaleY = 1;
 
-      update(el.id, {
-        x: n.x(),
-        y: n.y(),
-        width: newW,
-        height: newH,
-        rotation: n.rotation(),
-      } as any);
+      const startData = transformStartRef.current;
 
-      // reset runtime scale to keep transformer consistent
+      if (startData) {
+        const updateData: any = {
+          x: n.x(),
+          y: n.y(),
+          rotation: currentRotation,
+        };
+
+        // did user actually resize (not just rotate)?
+        const SCALE_THRESHOLD = 0.08; // 8% feels safer than 5% for noisy rotations
+        const scaleChanged =
+          Math.abs(scaleX - 1) > SCALE_THRESHOLD || Math.abs(scaleY - 1) > SCALE_THRESHOLD;
+
+        if (scaleChanged) {
+          // real resize: persist new logical size
+          updateData.width = Math.max(5, startData.width * scaleX);
+          updateData.height = Math.max(5, startData.height * scaleY);
+        } else {
+          // rotation-only: explicitly restore the node’s logical size
+          // so we don't “bake” any accidental scale into width/height
+          n.width(startData.width);
+          n.height(startData.height);
+        }
+
+        update(el.id, updateData);
+      }
+
+      // Always clear scale on the node so next transform starts fresh
       n.scaleX(1);
       n.scaleY(1);
+
+      transformStartRef.current = null;
     },
   };
 
@@ -147,10 +183,10 @@ export default function Draggable({
     const natH = i.naturalH ?? img?.height ?? 1;
 
     if (img && natW > 0 && natH > 0) {
-      const sx = i.width / natW;
-      const sy = i.height / natH;
+      //const sx = i.width / natW;
+      //const sy = i.height / natH;
 
-      if ((i.imageFit ?? 'cover') === 'contain') {
+      /*if ((i.imageFit ?? 'cover') === 'contain') {
         const s = Math.min(sx, sy);
         drawW = Math.round(natW * s);
         drawH = Math.round(natH * s);
@@ -163,13 +199,13 @@ export default function Draggable({
         drawX = Math.round((i.width - drawW) / 2);
         drawY = Math.round((i.height - drawH) / 2);
         // parts outside the frame will be clipped by Group below
-      } else {
+      } else {*/
         // 'stretch' (fill the frame regardless of aspect ratio)
         drawW = i.width;
         drawH = i.height;
         drawX = 0;
         drawY = 0;
-      }
+      //}
     }
 
     // Clip the image to the frame rect so 'cover' doesn't spill out
@@ -184,6 +220,8 @@ export default function Draggable({
         ref={frameRef}
         x={i.x}
         y={i.y}
+        width={i.width}
+        height={i.height}
         opacity={i.opacity ?? 1}
         rotation={i.rotation ?? 0}
         clipFunc={clipRect}
