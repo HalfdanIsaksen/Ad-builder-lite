@@ -24,6 +24,9 @@ type Actions = {
     select: (id: string | null) => void;
     clear: () => void;
     importJSON: (data: AnyEl[]) => void;
+
+    //Tool actions
+    setTool: (tool: Tool) => void;
     
     // Timeline actions
     playTimeline: () => void;
