@@ -55,6 +55,9 @@ export const useEditorStore = create<State & Actions>()(
                 loop: false,
                 tracks: []
             },
+            currentTool: 'select' as Tool,
+
+            setTool: (tool: Tool) => set({ currentTool: tool }),
 
             setPreset: (p) => set({ preset: p }),
 
