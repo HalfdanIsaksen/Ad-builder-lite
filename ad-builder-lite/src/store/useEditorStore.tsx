@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty } from '../Types';
+import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty, Tool } from '../Types';
 import { fileToDataURL } from '../utils/files';
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
@@ -10,6 +10,7 @@ type State = {
     selectedId: string | null;
     preset: CanvasPreset;
     timeline: TimelineState;
+    currentTool?: Tool;
 };
 
 type Actions = {
