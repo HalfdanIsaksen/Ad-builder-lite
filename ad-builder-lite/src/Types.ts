@@ -94,5 +94,6 @@ export type TimelineState = {
 
 
 //tool bar types
+// mouse changes to icon for each tool selected
 export type Tool = 'select' | 'draw-text' | 'zoom';
 

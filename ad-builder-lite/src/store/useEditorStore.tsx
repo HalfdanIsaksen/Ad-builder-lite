@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty } from '../Types';
+import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty, Tool } from '../Types';
 import { fileToDataURL } from '../utils/files';
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
@@ -10,6 +10,7 @@ type State = {
     selectedId: string | null;
     preset: CanvasPreset;
     timeline: TimelineState;
+    currentTool?: Tool;
 };
 
 type Actions = {
@@ -23,6 +24,9 @@ type Actions = {
     select: (id: string | null) => void;
     clear: () => void;
     importJSON: (data: AnyEl[]) => void;
+
+    //Tool actions
+    setTool: (tool: Tool) => void;
     
     // Timeline actions
     playTimeline: () => void;
@@ -54,6 +58,9 @@ export const useEditorStore = create<State & Actions>()(
                 loop: false,
                 tracks: []
             },
+            currentTool: 'select' as Tool,
+
+            setTool: (tool: Tool) => set({ currentTool: tool }),
 
             setPreset: (p) => set({ preset: p }),
 
