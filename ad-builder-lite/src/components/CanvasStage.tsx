@@ -1,23 +1,25 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Stage, Layer, Group, Transformer } from 'react-konva';
+import { Stage, Layer, Group, Transformer, Rect } from 'react-konva';
 import { useEditorStore } from '../store/useEditorStore';
 import { useCanvasSize } from './ResponsiveBar';
 import Draggable from './Draggable';
-
+import { getAnimatedElement } from '../utils/animation'; // Import the animation utility
 
 export default function CanvasStage() {
-  const { elements,
+  const { 
+    elements,
     select,
     selectedId,
     addImageFromFile,
     setTool,
     currentTool,
     addElement,
-
+    timeline // Add timeline to the destructuring
   } = useEditorStore();
+  
   const size = useCanvasSize();
 
-  // 1) Choose a canonical “design” space (keep your data in these units)
+  // 1) Choose a canonical "design" space (keep your data in these units)
   const DESIGN = { w: 970, h: 250 }; // 👈 match your desktop preset
 
   // 2) Compute scale from design -> current preset
@@ -73,15 +75,20 @@ export default function CanvasStage() {
       if (currentTool === 'select') {
         // Deselect current element
         select(null);
+        setSelectedNode(null);
       } else if (currentTool === 'draw-text') {
-        // Get click position
+        // Get click position and account for scaling
         const stage = e.target.getStage();
         const pointerPosition = stage.getPointerPosition();
+        
+        // Convert screen coordinates to design space coordinates
+        const designX = pointerPosition.x / sx;
+        const designY = pointerPosition.y / sy;
 
         // Add text element at click position
         addElement('text', {
-          x: pointerPosition.x - 50, // Center the text
-          y: pointerPosition.y - 10
+          x: designX - 50, // Center the text
+          y: designY - 10
         });
         setTool('select');
       }
@@ -92,9 +99,8 @@ export default function CanvasStage() {
     if (currentTool === 'select') {
       select(elementId);
     }
-    // implement other tools when added
+    // Other tools can be implemented here later
   };
-
 
   return (
     <div className="flex-1 flex items-center justify-center bg-neutral-100" onDragOver={onDragOver} onDrop={onDrop}>
@@ -103,45 +109,71 @@ export default function CanvasStage() {
         <Stage
           width={size.w}
           height={size.h}
-          onMouseDown={(e) => {
-            if (e.target === e.target.getStage()) {
-              select(null);
-              setSelectedNode(null);
-            }
-          }}
-          onTap={(e) => {
-            if (e.target === e.target.getStage()) {
-              select(null);
-              setSelectedNode(null);
-            }
-          }}
+          onMouseDown={handleStageClick}
+          onTap={handleStageClick}
         >
           <Layer>
             {/* Root group scales design space -> preset space */}
             <Group x={0} y={0} scaleX={sx} scaleY={sy}>
-              {elements.map((el) => (
-                <Draggable
-                  key={el.id}
-                  el={el}
-                  onAttachNode={(n) => setSelectedNode(n)}
+              {/* Canvas background in design space */}
+              <Rect
+                x={0}
+                y={0}
+                width={DESIGN.w}
+                height={DESIGN.h}
+                fill="white"
+                stroke="#ddd"
+                strokeWidth={1}
+                listening={false} // Don't interfere with clicks
+              />
 
-                />
-              ))}
+              {/* Render elements */}
+              {elements.map((element) => {
+                // Apply animation if timeline is playing or scrubbing
+                const animatedElement = timeline.isPlaying 
+                  ? element // Let Konva handle animations during playback
+                  : getAnimatedElement(element, timeline.currentTime, timeline.tracks);
+
+                return (
+                  <Draggable
+                    key={element.id}
+                    el={animatedElement}
+                    onAttachNode={(node) => {
+                      if (node && selectedId === element.id) {
+                        setSelectedNode(node);
+                      }
+                    }}
+                  />
+                );
+              })}
             </Group>
 
-            {selectedId && (
+            {/* Transformer for selected element - outside the scaled group */}
+            {selectedId && currentTool === 'select' && !timeline.isPlaying && (
               <Transformer
                 ref={transformerRef}
-                enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
+                enabledAnchors={[
+                  'top-left', 'top-center', 'top-right',
+                  'middle-left', 'middle-right',
+                  'bottom-left', 'bottom-center', 'bottom-right'
+                ]}
                 rotateEnabled
                 flipEnabled={false}
                 boundBoxFunc={boundBoxFunc}
                 anchorSize={8}
                 padding={4}
+                anchorStroke="#4285f4"
+                anchorFill="white"
+                anchorStrokeWidth={2}
               />
             )}
           </Layer>
         </Stage>
+      </div>
+      
+      {/* Tool indicator */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm">
+        Current tool: <span className="font-medium capitalize">{(currentTool || 'none').replace('-', ' ')}</span>
       </div>
     </div>
   );
