@@ -174,7 +174,13 @@ function Draggable({
 }*/
 
 export default function CanvasStage() {
-  const { elements, select, selectedId, addImageFromFile } = useEditorStore();
+  const { elements,
+    select,
+    selectedId,
+    addImageFromFile,
+    setTool,
+    currentTool,
+  } = useEditorStore();
   const size = useCanvasSize();
 
   // 1) Choose a canonical “design” space (keep your data in these units)
@@ -256,7 +262,7 @@ export default function CanvasStage() {
                   key={el.id}
                   el={el}
                   onAttachNode={(n) => setSelectedNode(n)}
-                  
+
                 />
               ))}
             </Group>

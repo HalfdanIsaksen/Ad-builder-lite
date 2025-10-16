@@ -37,7 +37,7 @@ export default function Sidebar() {
                         className="btn" 
                         onClick={() => {
                             addElement('text');
-                            setTool('select'); // Auto-switch to select tool after adding
+                            setTool('select'); 
                         }}
                     >
                         Text
@@ -46,7 +46,7 @@ export default function Sidebar() {
                         className="btn" 
                         onClick={() => {
                             addElement('image');
-                            setTool('select'); // Auto-switch to select tool after adding
+                            setTool('select'); 
                         }}
                     >
                         Image
@@ -55,7 +55,7 @@ export default function Sidebar() {
                         className="btn" 
                         onClick={() => {
                             addElement('button');
-                            setTool('select'); // Auto-switch to select tool after adding
+                            setTool('select');
                         }}
                     >
                         Button
