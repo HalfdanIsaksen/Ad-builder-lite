@@ -180,6 +180,8 @@ export default function CanvasStage() {
     addImageFromFile,
     setTool,
     currentTool,
+    addElement,
+
   } = useEditorStore();
   const size = useCanvasSize();
 
@@ -232,6 +234,34 @@ export default function CanvasStage() {
       return newBox;
     };
   }, [selectedEl]);
+
+  const handleStageClick = (e: any) => {
+    // Check if we clicked on the stage (not on an element)
+    if (e.target === e.target.getStage()) {
+      if (currentTool === 'select') {
+        // Deselect current element
+        select(null);
+      } else if (currentTool === 'draw-text') {
+        // Get click position
+        const stage = e.target.getStage();
+        const pointerPosition = stage.getPointerPosition();
+
+        // Add text element at click position
+        addElement('text', {
+          x: pointerPosition.x - 50, // Center the text
+          y: pointerPosition.y - 10
+        });
+        setTool('select');
+      }
+    }
+  };
+
+  const handleElementClick = (elementId: string) => {
+    if (currentTool === 'select') {
+      select(elementId);
+    }
+    // implement other tools when added
+  };
 
 
   return (
