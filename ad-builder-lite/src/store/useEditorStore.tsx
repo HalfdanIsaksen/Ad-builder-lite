@@ -27,6 +27,7 @@ type Actions = {
 
     //Tool actions
     setTool: (tool: Tool) => void;
+    setZoom: (scale: number) => void;
     
     // Timeline actions
     playTimeline: () => void;
@@ -61,14 +62,23 @@ export const useEditorStore = create<State & Actions>()(
             currentTool: 'select' as Tool,
 
             zoom: {
-                level: 1,
+                scale: 1,
                 min: 0.5,
                 max: 2,
                 step: 0.1
-                
+
             },
 
             setTool: (tool: Tool) => set({ currentTool: tool }),
+
+            setZoom: (scale: number) => set((s) => ({
+                zoom: {
+                    scale: Math.min(s.zoom.max, Math.max(s.zoom.min, scale)),
+                    min: s.zoom.min,
+                    max: s.zoom.max,
+                    step: s.zoom.step
+                }
+            })),
 
             setPreset: (p) => set({ preset: p }),
 
