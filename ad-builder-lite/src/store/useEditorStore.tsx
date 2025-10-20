@@ -60,6 +60,14 @@ export const useEditorStore = create<State & Actions>()(
             },
             currentTool: 'select' as Tool,
 
+            zoom: {
+                level: 1,
+                min: 0.5,
+                max: 2,
+                step: 0.1
+                
+            },
+
             setTool: (tool: Tool) => set({ currentTool: tool }),
 
             setPreset: (p) => set({ preset: p }),
