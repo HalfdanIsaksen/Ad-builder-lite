@@ -11,6 +11,12 @@ type State = {
     preset: CanvasPreset;
     timeline: TimelineState;
     currentTool?: Tool;
+    zoom: {
+        scale: number;
+        min: number;
+        max: number;
+        step: number;
+    };
 };
 
 type Actions = {
