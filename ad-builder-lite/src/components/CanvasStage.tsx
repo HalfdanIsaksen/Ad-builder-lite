@@ -14,7 +14,11 @@ export default function CanvasStage() {
     setTool,
     currentTool,
     addElement,
-    timeline // Add timeline to the destructuring
+    timeline, // Add timeline to the destructuring
+    zoom,
+    setZoom,
+    resetZoom,
+    zoomToFit
   } = useEditorStore();
   
   const size = useCanvasSize();

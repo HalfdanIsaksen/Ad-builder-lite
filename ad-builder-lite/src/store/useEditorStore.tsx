@@ -34,6 +34,8 @@ type Actions = {
     //Tool actions
     setTool: (tool: Tool) => void;
     setZoom: (scale: number) => void;
+    resetZoom: () => void;
+    zoomToFit: () => void;
     
     // Timeline actions
     playTimeline: () => void;
