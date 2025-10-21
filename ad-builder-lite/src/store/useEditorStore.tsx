@@ -86,6 +86,21 @@ export const useEditorStore = create<State & Actions>()(
                 }
             })),
 
+            resetZoom: () => set((s) => ({
+                zoom: {
+                    ...s.zoom,
+                    scale: 1
+                }
+            })),
+
+            zoomToFit: () =>
+                set((s) => ({ 
+                    zoom: {
+                       ...s.zoom,
+                       scale: 1
+                    }
+            })),
+
             setPreset: (p) => set({ preset: p }),
 
             addElement: (type, init) => set((s) => {
