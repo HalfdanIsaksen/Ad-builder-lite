@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Stage, Layer, Group, Transformer, Rect } from 'react-konva';
 import { useEditorStore } from '../store/useEditorStore';
 import { useCanvasSize } from './ResponsiveBar';
@@ -6,7 +6,7 @@ import Draggable from './Draggable';
 import { getAnimatedElement } from '../utils/animation'; // Import the animation utility
 
 export default function CanvasStage() {
-  const { 
+  const {
     elements,
     select,
     selectedId,
@@ -20,7 +20,7 @@ export default function CanvasStage() {
     resetZoom,
     zoomToFit
   } = useEditorStore();
-  
+
   const size = useCanvasSize();
 
   // 1) Choose a canonical "design" space (keep your data in these units)
@@ -86,7 +86,7 @@ export default function CanvasStage() {
         // Get click position and account for scaling
         const stage = e.target.getStage();
         const pointerPosition = stage.getPointerPosition();
-        
+
         // Convert screen coordinates to design space coordinates
         const designX = pointerPosition.x / sx;
         const designY = pointerPosition.y / sy;
@@ -97,7 +97,7 @@ export default function CanvasStage() {
           y: designY - 10
         });
         setTool('select');
-      }else if (currentTool === 'zoom') {
+      } else if (currentTool === 'zoom') {
         // Zoom in on click location
         const newScale = zoom.scale * 1.5;
         const newX = zoom.x - (pointerPosition.x - zoom.x) * 0.5;
@@ -106,6 +106,51 @@ export default function CanvasStage() {
       }
     }
   };
+  // Handle wheel zoom
+  const handleWheel = useCallback((e: any) => {
+    if (currentTool !== 'zoom') return;
+
+    e.evt.preventDefault();
+
+    const stage = e.target.getStage();
+    const oldScale = zoom.scale;
+    const pointer = stage.getPointerPosition();
+
+    const scaleBy = 1.1;
+    const newScale = e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy;
+
+    const newX = zoom.x - (pointer.x - zoom.x) * ((newScale / oldScale) - 1);
+    const newY = zoom.y - (pointer.y - zoom.y) * ((newScale / oldScale) - 1);
+
+    setZoom(newScale, newX, newY);
+  }, [currentTool, zoom, setZoom]);
+
+  // Handle pan when zoom tool is active
+  const handleMouseDown = useCallback((e: any) => {
+    if (currentTool === 'zoom' && e.target === e.target.getStage()) {
+      setIsDragging(true);
+      const pos = e.target.getStage().getPointerPosition();
+      setLastPointerPosition(pos);
+    }
+  }, [currentTool]);
+
+  const handleMouseMove = useCallback((e: any) => {
+    if (!isDragging || currentTool !== 'zoom') return;
+
+    const stage = e.target.getStage();
+    const pos = stage.getPointerPosition();
+
+    const newX = zoom.x + (pos.x - lastPointerPosition.x);
+    const newY = zoom.y + (pos.y - lastPointerPosition.y);
+
+    setZoom(zoom.scale, newX, newY);
+    setLastPointerPosition(pos);
+  }, [isDragging, currentTool, zoom, lastPointerPosition, setZoom]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
 
   const handleElementClick = (elementId: string) => {
     if (currentTool === 'select') {
@@ -142,7 +187,7 @@ export default function CanvasStage() {
               {/* Render elements */}
               {elements.map((element) => {
                 // Apply animation if timeline is playing or scrubbing
-                const animatedElement = timeline.isPlaying 
+                const animatedElement = timeline.isPlaying
                   ? element // Let Konva handle animations during playback
                   : getAnimatedElement(element, timeline.currentTime, timeline.tracks);
 
@@ -182,7 +227,7 @@ export default function CanvasStage() {
           </Layer>
         </Stage>
       </div>
-      
+
       {/* Tool indicator */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm">
         Current tool: <span className="font-medium capitalize">{(currentTool || 'none').replace('-', ' ')}</span>
