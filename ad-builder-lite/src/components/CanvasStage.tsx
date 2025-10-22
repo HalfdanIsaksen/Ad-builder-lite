@@ -24,7 +24,7 @@ export default function CanvasStage() {
   const size = useCanvasSize();
 
   // 1) Choose a canonical "design" space (keep your data in these units)
-  const DESIGN = { w: 970, h: 250 }; // 👈 match your desktop preset
+  const DESIGN = { w: 970, h: 250 };
 
   // 2) Compute scale from design -> current preset
   const sx = size.w / DESIGN.w;
@@ -32,6 +32,8 @@ export default function CanvasStage() {
 
   const transformerRef = useRef<any>(null);
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lastPointerPosition, setLastPointerPosition] = useState({ x: 0, y: 0 });
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
   const onDrop = async (e: React.DragEvent<HTMLDivElement>) => {
@@ -95,6 +97,12 @@ export default function CanvasStage() {
           y: designY - 10
         });
         setTool('select');
+      }else if (currentTool === 'zoom') {
+        // Zoom in on click location
+        const newScale = zoom.scale * 1.5;
+        const newX = zoom.x - (pointerPosition.x - zoom.x) * 0.5;
+        const newY = zoom.y - (pointerPosition.y - zoom.y) * 0.5;
+        setZoom(newScale, newX, newY);
       }
     }
   };
