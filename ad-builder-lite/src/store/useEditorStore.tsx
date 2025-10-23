@@ -71,6 +71,8 @@ export const useEditorStore = create<State & Actions>()(
 
             zoom: {
                 scale: 1,
+                x: 0,
+                y: 0,
                 min: 0.5,
                 max: 2,
                 step: 0.1
