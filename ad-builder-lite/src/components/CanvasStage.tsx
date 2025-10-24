@@ -1,184 +1,31 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Stage, Layer, Group, Transformer } from 'react-konva';
-//import useImage from 'use-image';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { Stage, Layer, Group, Transformer, Rect } from 'react-konva';
 import { useEditorStore } from '../store/useEditorStore';
-//import type { AnyEl, ButtonEl, ImageEl, TextEl } from '../Types';
 import { useCanvasSize } from './ResponsiveBar';
 import Draggable from './Draggable';
-/*Might be useful later else delete
-type EventProps = {
-  draggable: boolean;
-  onMouseDown: (e: any) => void;
-  onTap: () => void;
-  onDragEnd: (e: any) => void;
-  onTransformEnd: (e: any) => void;
-};
-
-
-function Img({ el, eventProps, nodeRef }: { el: ImageEl; eventProps: EventProps; nodeRef: any }) {
-  const [img] = useImage(el.src, 'anonymous');
-  return (
-    <KImage
-      ref={nodeRef}
-      image={img as any}
-      x={el.x}
-      y={el.y}
-      width={el.width}
-      height={el.height}
-      opacity={el.opacity ?? 1}
-      rotation={el.rotation ?? 0}
-      listening
-      {...eventProps}
-    />
-  );
-}
-
-function Btn({ el, eventProps, nodeRef }: { el: ButtonEl; eventProps: EventProps; nodeRef: any }) {
-  const [bgImg] = useImage(el.bgImageSrc || '', 'anonymous');
-
-  // rounded clip for the whole button (so image respects corner radius)
-  const radius = 12;
-  const clipRounded = (ctx: any) => {
-    const w = el.width, h = el.height, r = Math.min(radius, Math.min(w, h) / 2);
-    ctx.beginPath();
-    ctx.moveTo(r, 0);
-    ctx.arcTo(w, 0, w, h, r);
-    ctx.arcTo(w, h, 0, h, r);
-    ctx.arcTo(0, h, 0, 0, r);
-    ctx.arcTo(0, 0, w, 0, r);
-    ctx.closePath();
-  };
-
-  // compute fitted image rect inside button
-  let imgX = 0, imgY = 0, imgW = el.width, imgH = el.height;
-  if (bgImg && el.bgType === 'image' && bgImg.width && bgImg.height) {
-    const sx = el.width / bgImg.width;
-    const sy = el.height / bgImg.height;
-    if (el.imageFit === 'contain') {
-      const s = Math.min(sx, sy);
-      imgW = bgImg.width * s;
-      imgH = bgImg.height * s;
-      imgX = (el.width - imgW) / 2;
-      imgY = (el.height - imgH) / 2;
-    } else if (el.imageFit === 'cover') {
-      const s = Math.max(sx, sy);
-      imgW = bgImg.width * s;
-      imgH = bgImg.height * s;
-      imgX = (el.width - imgW) / 2;
-      imgY = (el.height - imgH) / 2;
-    } else {
-      // 'stretch' (default): fill rect
-      imgW = el.width; imgH = el.height; imgX = 0; imgY = 0;
-    }
-  }
-
-  return (
-    <Group
-      ref={nodeRef}
-      x={el.x}
-      y={el.y}
-      opacity={el.opacity ?? 1}
-      rotation={el.rotation ?? 0}
-      listening
-      clipFunc={clipRounded}
-      {...eventProps}
-    >
-      {el.bgType === 'image' && bgImg ? (
-        <KImage image={bgImg as any} x={imgX} y={imgY} width={imgW} height={imgH} />
-      ) : (
-        <Rect width={el.width} height={el.height} fill={el.fill ?? '#2563eb'} />
-      )}
-      <Text
-        text={el.label}
-        fill={el.textColor ?? '#fff'}
-        align="center"
-        verticalAlign="middle"
-        x={0}
-        y={0}
-        width={el.width}
-        height={el.height}
-        fontStyle="600"
-      />
-    </Group>
-  );
-}
-
-function Draggable({
-  el,
-  onAttachNode,
-}: {
-  el: AnyEl;
-  onAttachNode: (node: any | null) => void;
-}) {
-  const select = useEditorStore((s) => s.select);
-  const update = useEditorStore((s) => s.updateElement);
-  const isSelected = useEditorStore((s) => s.selectedId === el.id);
-
-  const nodeRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (isSelected) onAttachNode(nodeRef.current);
-  }, [isSelected, onAttachNode]);
-
-  const eventProps: EventProps = {
-    draggable: true,
-    onMouseDown: () => select(el.id),
-    onTap: () => select(el.id),
-    onDragEnd: (e: any) => update(el.id, { x: e.target.x(), y: e.target.y() } as any),
-    onTransformEnd: (e: any) => {
-      const n = e.target;
-      // capture scale + normalize back to 1 so width/height store real size
-      const scaleX = n.scaleX();
-      const scaleY = n.scaleY();
-      const newW = Math.max(5, (el.width || 0) * scaleX);
-      const newH = Math.max(5, (el.height || 0) * scaleY);
-
-      // write back size/pos/rotation
-      update(el.id, {
-        x: n.x(),
-        y: n.y(),
-        width: newW,
-        height: newH,
-        rotation: n.rotation(),
-      } as any);
-
-      // reset runtime scale to keep transformer consistent
-      n.scaleX(1);
-      n.scaleY(1);
-    },
-  };
-
-  if (el.type === 'text') {
-    const t = el as TextEl;
-    return (
-      <Text
-        ref={nodeRef}
-        x={t.x}
-        y={t.y}
-        text={t.text}
-        fontSize={t.fontSize}
-        fill={t.fill ?? '#111'}
-        opacity={t.opacity ?? 1}
-        rotation={t.rotation ?? 0}
-        width={t.width}
-        height={t.height}
-        listening
-        {...eventProps}
-      />
-    );
-  }
-  if (el.type === 'image') return <Img el={el as ImageEl} eventProps={eventProps} nodeRef={nodeRef} />;
-  if (el.type === 'button') return <Btn el={el as ButtonEl} eventProps={eventProps} nodeRef={nodeRef} />;
-
-  return null;
-}*/
+import { getAnimatedElement } from '../utils/animation'; // Import the animation utility
 
 export default function CanvasStage() {
-  const { elements, select, selectedId, addImageFromFile } = useEditorStore();
-  const size = useCanvasSize();
+  const {
+    elements,
+    select,
+    selectedId,
+    addImageFromFile,
+    setTool,
+    currentTool,
+    addElement,
+    timeline, // Add timeline to the destructuring
+    zoom,
+    setZoom,
+    resetZoom,
+    zoomToFit
+  } = useEditorStore();
 
-  // 1) Choose a canonical “design” space (keep your data in these units)
-  const DESIGN = { w: 970, h: 250 }; // 👈 match your desktop preset
+  const size = useCanvasSize();
+  const stageRef = useRef<any>(null);
+
+  // 1) Choose a canonical "design" space (keep your data in these units)
+  const DESIGN = { w: 970, h: 250 };
 
   // 2) Compute scale from design -> current preset
   const sx = size.w / DESIGN.w;
@@ -186,6 +33,8 @@ export default function CanvasStage() {
 
   const transformerRef = useRef<any>(null);
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lastPointerPosition, setLastPointerPosition] = useState({ x: 0, y: 0 });
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
   const onDrop = async (e: React.DragEvent<HTMLDivElement>) => {
@@ -227,54 +76,230 @@ export default function CanvasStage() {
     };
   }, [selectedEl]);
 
+  const handleStageClick = (e: any) => {
+    const stage = e.target.getStage();
+    const pointerPosition = stage.getPointerPosition();
 
+    // Check if we clicked on the stage (not on an element)
+    if (e.target === stage) {
+      if (currentTool === 'select') {
+        // Deselect current element
+        select(null);
+        setSelectedNode(null);
+      } else if (currentTool === 'draw-text') {
+        // Get click position and account for scaling
+        const stage = e.target.getStage();
+        const pointerPosition = stage.getPointerPosition();
+
+        // Convert screen coordinates to design space coordinates
+        const designX = pointerPosition.x / sx;
+        const designY = pointerPosition.y / sy;
+
+        // Add text element at click position
+        addElement('text', {
+          x: designX - 50, // Center the text
+          y: designY - 10
+        });
+        setTool('select');
+      } else if (currentTool === 'zoom') {
+        // Zoom in on click location
+        const newScale = zoom.scale * 1.5;
+        const newX = zoom.x - (pointerPosition.x - zoom.x) * 0.5;
+        const newY = zoom.y - (pointerPosition.y - zoom.y) * 0.5;
+        setZoom(newScale, newX, newY);
+      }
+    }
+  };
+  // Handle wheel zoom
+  const handleWheel = useCallback((e: any) => {
+    if (currentTool !== 'zoom') return;
+
+    e.evt.preventDefault();
+
+    const stage = e.target.getStage();
+    const oldScale = zoom.scale;
+    const pointer = stage.getPointerPosition();
+
+    const scaleBy = 1.1;
+    const newScale = e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy;
+
+    const newX = zoom.x - (pointer.x - zoom.x) * ((newScale / oldScale) - 1);
+    const newY = zoom.y - (pointer.y - zoom.y) * ((newScale / oldScale) - 1);
+
+    setZoom(newScale, newX, newY);
+  }, [currentTool, zoom, setZoom]);
+
+  // Handle pan when zoom tool is active
+  const handleMouseDown = useCallback((e: any) => {
+    if (currentTool === 'zoom' && e.target === e.target.getStage()) {
+      setIsDragging(true);
+      const pos = e.target.getStage().getPointerPosition();
+      setLastPointerPosition(pos);
+    }
+  }, [currentTool]);
+
+  const handleMouseMove = useCallback((e: any) => {
+    if (!isDragging || currentTool !== 'zoom') return;
+
+    const stage = e.target.getStage();
+    const pos = stage.getPointerPosition();
+
+    const newX = zoom.x + (pos.x - lastPointerPosition.x);
+    const newY = zoom.y + (pos.y - lastPointerPosition.y);
+
+    setZoom(zoom.scale, newX, newY);
+    setLastPointerPosition(pos);
+  }, [isDragging, currentTool, zoom, lastPointerPosition, setZoom]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+
+  const handleElementClick = (elementId: string) => {
+    if (currentTool === 'select') {
+      select(elementId);
+    }
+    // Other tools can be implemented here later
+  };
+  /*
+    // Keyboard shortcuts for zoom If the other works add this
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (currentTool === 'zoom') {
+        if (e.key === '0' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          resetZoom();
+        } else if (e.key === '=' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          setZoom(zoom.scale * 1.2, zoom.x, zoom.y);
+        } else if (e.key === '-' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          setZoom(zoom.scale / 1.2, zoom.x, zoom.y);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentTool, zoom, setZoom, resetZoom]);
+  */
   return (
     <div className="flex-1 flex items-center justify-center bg-neutral-100" onDragOver={onDragOver} onDrop={onDrop}>
       {/* Outer frame uses the preset's pixel size */}
-      <div className="border border-neutral-300 bg-white shadow-sm" style={{ width: size.w, height: size.h }}>
+      <div 
+        className="border border-neutral-300 bg-white shadow-sm overflow-hidden"
+        style={{ width: size.w, height: size.h }}
+      >
         <Stage
+          ref={stageRef}
           width={size.w}
           height={size.h}
-          onMouseDown={(e) => {
-            if (e.target === e.target.getStage()) {
-              select(null);
-              setSelectedNode(null);
-            }
-          }}
-          onTap={(e) => {
-            if (e.target === e.target.getStage()) {
-              select(null);
-              setSelectedNode(null);
-            }
-          }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onWheel={handleWheel}
+          onClick={handleStageClick}
+          onTap={handleStageClick}
+          style={{ cursor: currentTool === 'zoom' ? 'zoom-in' : 'default' }}
         >
           <Layer>
-            {/* Root group scales design space -> preset space */}
-            <Group x={0} y={0} scaleX={sx} scaleY={sy}>
-              {elements.map((el) => (
-                <Draggable
-                  key={el.id}
-                  el={el}
-                  onAttachNode={(n) => setSelectedNode(n)}
-                  
-                />
-              ))}
+            {/* Root group scales design space -> preset space and applies zoom */}
+            <Group 
+              x={zoom.x} 
+              y={zoom.y} 
+              scaleX={sx * zoom.scale} 
+              scaleY={sy * zoom.scale}
+            >
+              {/* Canvas background in design space */}
+              <Rect
+                x={0}
+                y={0}
+                width={DESIGN.w}
+                height={DESIGN.h}
+                fill="white"
+                stroke="#ddd"
+                strokeWidth={1 / zoom.scale} // Keep stroke width consistent
+                listening={false} // Don't interfere with clicks
+              />
+
+              {/* Render elements */}
+              {elements.map((element) => {
+                // Apply animation if timeline is playing or scrubbing
+                const animatedElement = timeline.isPlaying 
+                  ? element // Let Konva handle animations during playback
+                  : getAnimatedElement(element, timeline.currentTime, timeline.tracks);
+
+                return (
+                  <Draggable
+                    key={element.id}
+                    el={animatedElement}
+                    onAttachNode={(node) => {
+                      if (node && selectedId === element.id) {
+                        setSelectedNode(node);
+                      }
+                    }}
+                    disabled={currentTool !== 'select'}
+                  />
+                );
+              })}
             </Group>
 
-            {selectedId && (
+            {/* Transformer for selected element - outside the scaled group */}
+            {selectedId && currentTool === 'select' && !timeline.isPlaying && (
               <Transformer
                 ref={transformerRef}
-                enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
+                enabledAnchors={[
+                  'top-left', 'top-center', 'top-right',
+                  'middle-left', 'middle-right',
+                  'bottom-left', 'bottom-center', 'bottom-right'
+                ]}
                 rotateEnabled
                 flipEnabled={false}
                 boundBoxFunc={boundBoxFunc}
                 anchorSize={8}
                 padding={4}
+                anchorStroke="#4285f4"
+                anchorFill="white"
+                anchorStrokeWidth={2}
               />
             )}
           </Layer>
         </Stage>
       </div>
+      
+      {/* Tool indicator and zoom controls */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-3 py-2 rounded text-sm flex items-center gap-3">
+        <span>
+          Current tool: <span className="font-medium capitalize">{currentTool?.replace('-', ' ') || 'none'}</span>
+        </span>
+        
+        {currentTool === 'zoom' && (
+          <>
+            <span className="text-gray-300">|</span>
+            <span>Zoom: {Math.round(zoom.scale * 100)}%</span>
+            <button 
+              onClick={resetZoom}
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded text-xs"
+            >
+              Reset
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Zoom tool instructions */}
+      {currentTool === 'zoom' && (
+        <div className="absolute top-4 left-4 bg-blue-500 text-white px-3 py-2 rounded text-sm">
+          <div className="font-medium mb-1">Zoom Tool</div>
+          <div className="text-xs space-y-1">
+            <div>• Click to zoom in</div>
+            <div>• Scroll wheel to zoom</div>
+            <div>• Drag to pan</div>
+            <div>• Ctrl+0 to reset zoom</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

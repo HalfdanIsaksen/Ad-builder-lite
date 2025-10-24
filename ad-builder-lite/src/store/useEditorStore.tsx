@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty } from '../Types';
+import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty, Tool } from '../Types';
 import { fileToDataURL } from '../utils/files';
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
@@ -10,6 +10,12 @@ type State = {
     selectedId: string | null;
     preset: CanvasPreset;
     timeline: TimelineState;
+    currentTool?: Tool;
+    zoom: {
+        scale: number;
+        x: number;
+        y: number;
+    };
 };
 
 type Actions = {
@@ -23,7 +29,13 @@ type Actions = {
     select: (id: string | null) => void;
     clear: () => void;
     importJSON: (data: AnyEl[]) => void;
-    
+
+    //Tool actions
+    setTool: (tool: Tool) => void;
+    setZoom: (scale: number, x?: number, y?: number) => void;
+    resetZoom: () => void;
+    zoomToFit: () => void;
+
     // Timeline actions
     playTimeline: () => void;
     pauseTimeline: () => void;
@@ -53,6 +65,44 @@ export const useEditorStore = create<State & Actions>()(
                 playbackSpeed: 1.0,
                 loop: false,
                 tracks: []
+            },
+            currentTool: 'select' as Tool,
+
+            zoom: {
+                scale: 1,
+                x: 0,
+                y: 0
+            },
+
+            setTool: (tool: Tool) => set({ currentTool: tool }),
+
+            setZoom: (scale: number, x: number = 0, y: number = 0) => {
+                set((state) => ({
+                    zoom: {
+                        scale: Math.max(0.1, Math.min(5, scale)), // Limit zoom between 10% and 500%
+                        x,
+                        y
+                    }
+                }));
+            },
+            resetZoom: () => {
+                set({
+                    zoom: {
+                        scale: 1,
+                        x: 0,
+                        y: 0
+                    }
+                });
+            },
+
+            zoomToFit: () => {
+                set({
+                    zoom: {
+                        scale: 1,
+                        x: 0,
+                        y: 0
+                    }
+                });
             },
 
             setPreset: (p) => set({ preset: p }),
@@ -141,8 +191,8 @@ export const useEditorStore = create<State & Actions>()(
 
             select: (id) => set({ selectedId: id }),
 
-            clear: () => set({ 
-                elements: [], 
+            clear: () => set({
+                elements: [],
                 selectedId: null,
                 timeline: {
                     currentTime: 0,
@@ -181,10 +231,10 @@ export const useEditorStore = create<State & Actions>()(
                 timeline: { ...s.timeline, loop: !s.timeline.loop }
             })),
 
-            addKeyframe: (elementId, property, time, value : number | { x: number; y: number }) => set((s) => {
+            addKeyframe: (elementId, property, time, value: number | { x: number; y: number }) => set((s) => {
                 const trackIndex = s.timeline.tracks.findIndex(t => t.elementId === elementId);
                 let tracks = [...s.timeline.tracks];
-                
+
                 const keyframe: Keyframe = {
                     id: uid(),
                     time,
@@ -218,7 +268,7 @@ export const useEditorStore = create<State & Actions>()(
                     ...s.timeline,
                     tracks: s.timeline.tracks.map(track => ({
                         ...track,
-                        keyframes: track.keyframes.map(kf => 
+                        keyframes: track.keyframes.map(kf =>
                             kf.id === keyframeId ? { ...kf, ...updates } : kf
                         )
                     }))

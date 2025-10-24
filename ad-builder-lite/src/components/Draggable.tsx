@@ -17,15 +17,19 @@ type EventProps = {
 export default function Draggable({
   el,
   onAttachNode,
+  onClick,
+  disabled = false
 }: {
   el: AnyEl;
   onAttachNode: (node: any | null) => void;
+  onClick?: () => void;
+  disabled?: boolean;
 }) {
   const select = useEditorStore((s) => s.select);
   const update = useEditorStore((s) => s.updateElement);
   const isSelected = useEditorStore((s) => s.selectedId === el.id);
   const timeline = useEditorStore((s) => s.timeline);
-
+  const currentTool = useEditorStore((s) => s.currentTool);
   // Only use manual interpolation when NOT playing (for scrubbing)
   // When playing, let Konva handle all animations
   const animatedEl = timeline.isPlaying
@@ -81,9 +85,18 @@ export default function Draggable({
   const transformStartRef = useRef<{ width: number; height: number; rotation: number } | null>(null);
 
   const eventProps: EventProps = {
-    draggable: !timeline.isPlaying,
-    onMouseDown: () => !timeline.isPlaying && select(el.id),
-    onTap: () => !timeline.isPlaying && select(el.id),
+    draggable: !timeline.isPlaying && !disabled && currentTool === 'select',
+    onMouseDown: () => {
+      if (!timeline.isPlaying && !disabled && currentTool === 'select') {
+        select(el.id);
+      }
+    },
+    onTap: () => {
+      if (!timeline.isPlaying && !disabled) {
+        if (onClick) onClick();
+        else if (currentTool === 'select') select(el.id);
+      }
+    },
 
     onDragEnd: (e: any) => {
       const n = e.target;
@@ -183,29 +196,10 @@ export default function Draggable({
     const natH = i.naturalH ?? img?.height ?? 1;
 
     if (img && natW > 0 && natH > 0) {
-      //const sx = i.width / natW;
-      //const sy = i.height / natH;
-
-      /*if ((i.imageFit ?? 'cover') === 'contain') {
-        const s = Math.min(sx, sy);
-        drawW = Math.round(natW * s);
-        drawH = Math.round(natH * s);
-        drawX = Math.round((i.width - drawW) / 2);
-        drawY = Math.round((i.height - drawH) / 2);
-      } else if ((i.imageFit ?? 'cover') === 'cover') {
-        const s = Math.max(sx, sy);
-        drawW = Math.round(natW * s);
-        drawH = Math.round(natH * s);
-        drawX = Math.round((i.width - drawW) / 2);
-        drawY = Math.round((i.height - drawH) / 2);
-        // parts outside the frame will be clipped by Group below
-      } else {*/
-        // 'stretch' (fill the frame regardless of aspect ratio)
-        drawW = i.width;
-        drawH = i.height;
-        drawX = 0;
-        drawY = 0;
-      //}
+      drawW = i.width;
+      drawH = i.height;
+      drawX = 0;
+      drawY = 0;
     }
 
     // Clip the image to the frame rect so 'cover' doesn't spill out

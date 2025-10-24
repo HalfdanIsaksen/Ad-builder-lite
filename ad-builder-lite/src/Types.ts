@@ -40,6 +40,22 @@ export type ButtonEl = BaseEl & {
     imageFit?: 'cover' | 'contain' | 'stretch';
 };
 
+export type RectEl = BaseEl & {
+    type: 'rect';
+    fill?: string;
+};
+
+export type CircleEl = {
+    type: 'circle';
+    id: string;
+    x: number; y: number;
+    radius: number;
+    rotation?: number;
+    opacity?: number;
+    visible?: boolean;
+    fill?: string;
+}
+
 export type AnyEl = TextEl | ImageEl | ButtonEl;
 
 export type CanvasPreset = 'desktop' | 'tablet' | 'mobile';
@@ -75,3 +91,9 @@ export type TimelineState = {
   loop: boolean;
   tracks: AnimationTrack[];
 };
+
+
+//tool bar types
+// mouse changes to icon for each tool selected
+export type Tool = 'select' | 'draw-text' | 'zoom';
+
