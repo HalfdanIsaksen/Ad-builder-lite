@@ -22,6 +22,7 @@ export default function CanvasStage() {
   } = useEditorStore();
 
   const size = useCanvasSize();
+  const stageRef = useRef<any>(null);
 
   // 1) Choose a canonical "design" space (keep your data in these units)
   const DESIGN = { w: 970, h: 250 };
@@ -76,8 +77,11 @@ export default function CanvasStage() {
   }, [selectedEl]);
 
   const handleStageClick = (e: any) => {
+    const stage = e.target.getStage();
+    const pointerPosition = stage.getPointerPosition();
+
     // Check if we clicked on the stage (not on an element)
-    if (e.target === e.target.getStage()) {
+    if (e.target === stage) {
       if (currentTool === 'select') {
         // Deselect current element
         select(null);
@@ -158,20 +162,55 @@ export default function CanvasStage() {
     }
     // Other tools can be implemented here later
   };
+  /*
+    // Keyboard shortcuts for zoom If the other works add this
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (currentTool === 'zoom') {
+        if (e.key === '0' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          resetZoom();
+        } else if (e.key === '=' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          setZoom(zoom.scale * 1.2, zoom.x, zoom.y);
+        } else if (e.key === '-' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          setZoom(zoom.scale / 1.2, zoom.x, zoom.y);
+        }
+      }
+    };
 
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentTool, zoom, setZoom, resetZoom]);
+  */
   return (
     <div className="flex-1 flex items-center justify-center bg-neutral-100" onDragOver={onDragOver} onDrop={onDrop}>
       {/* Outer frame uses the preset's pixel size */}
-      <div className="border border-neutral-300 bg-white shadow-sm" style={{ width: size.w, height: size.h }}>
+      <div 
+        className="border border-neutral-300 bg-white shadow-sm overflow-hidden"
+        style={{ width: size.w, height: size.h }}
+      >
         <Stage
+          ref={stageRef}
           width={size.w}
           height={size.h}
-          onMouseDown={handleStageClick}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onWheel={handleWheel}
+          onClick={handleStageClick}
           onTap={handleStageClick}
+          style={{ cursor: currentTool === 'zoom' ? 'zoom-in' : 'default' }}
         >
           <Layer>
-            {/* Root group scales design space -> preset space */}
-            <Group x={0} y={0} scaleX={sx} scaleY={sy}>
+            {/* Root group scales design space -> preset space and applies zoom */}
+            <Group 
+              x={zoom.x} 
+              y={zoom.y} 
+              scaleX={sx * zoom.scale} 
+              scaleY={sy * zoom.scale}
+            >
               {/* Canvas background in design space */}
               <Rect
                 x={0}
@@ -180,14 +219,14 @@ export default function CanvasStage() {
                 height={DESIGN.h}
                 fill="white"
                 stroke="#ddd"
-                strokeWidth={1}
+                strokeWidth={1 / zoom.scale} // Keep stroke width consistent
                 listening={false} // Don't interfere with clicks
               />
 
               {/* Render elements */}
               {elements.map((element) => {
                 // Apply animation if timeline is playing or scrubbing
-                const animatedElement = timeline.isPlaying
+                const animatedElement = timeline.isPlaying 
                   ? element // Let Konva handle animations during playback
                   : getAnimatedElement(element, timeline.currentTime, timeline.tracks);
 
@@ -200,6 +239,7 @@ export default function CanvasStage() {
                         setSelectedNode(node);
                       }
                     }}
+                    disabled={currentTool !== 'select'}
                   />
                 );
               })}
@@ -227,11 +267,39 @@ export default function CanvasStage() {
           </Layer>
         </Stage>
       </div>
-
-      {/* Tool indicator */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm">
-        Current tool: <span className="font-medium capitalize">{(currentTool || 'none').replace('-', ' ')}</span>
+      
+      {/* Tool indicator and zoom controls */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-3 py-2 rounded text-sm flex items-center gap-3">
+        <span>
+          Current tool: <span className="font-medium capitalize">{currentTool?.replace('-', ' ') || 'none'}</span>
+        </span>
+        
+        {currentTool === 'zoom' && (
+          <>
+            <span className="text-gray-300">|</span>
+            <span>Zoom: {Math.round(zoom.scale * 100)}%</span>
+            <button 
+              onClick={resetZoom}
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded text-xs"
+            >
+              Reset
+            </button>
+          </>
+        )}
       </div>
+
+      {/* Zoom tool instructions */}
+      {currentTool === 'zoom' && (
+        <div className="absolute top-4 left-4 bg-blue-500 text-white px-3 py-2 rounded text-sm">
+          <div className="font-medium mb-1">Zoom Tool</div>
+          <div className="text-xs space-y-1">
+            <div>• Click to zoom in</div>
+            <div>• Scroll wheel to zoom</div>
+            <div>• Drag to pan</div>
+            <div>• Ctrl+0 to reset zoom</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
