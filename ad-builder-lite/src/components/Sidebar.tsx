@@ -1,7 +1,8 @@
 import { useEditorStore } from '../store/useEditorStore';
 
 export default function Sidebar() {
-    const { addElement, currentTool, setTool } = useEditorStore();
+    const { addElement, currentTool, setTool, resetZoom } = useEditorStore();
+    
     return (
         <aside className="p-3 border-r border-neutral-200 bg-white w-56 space-y-3">
             {/* Tools Section */}
@@ -26,11 +27,21 @@ export default function Sidebar() {
                     >
                         <span className="mr-2">🔍</span> Zoom
                     </button>
+                    
+                    {/* Zoom controls - only show when zoom tool is active */}
+                    {currentTool === 'zoom' && (
+                        <button 
+                            className="btn bg-gray-100 text-sm"
+                            onClick={resetZoom}
+                        >
+                            Reset Zoom
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* Components Section */}
-             <div>
+            <div>
                 <h2 className="text-xs uppercase tracking-wide text-neutral-500 mb-2">Components</h2>
                 <div className="grid gap-2">
                     <button 
@@ -55,25 +66,11 @@ export default function Sidebar() {
                         className="btn" 
                         onClick={() => {
                             addElement('button');
-                            setTool('select');
+                            setTool('select'); 
                         }}
                     >
                         Button
                     </button>
-                    
-                    {/* Shape selector */}
-                    <select className="input h-9" onChange={(e) => {
-                        const shape = e.target.value;
-                        // You can implement shape creation here later
-                        console.log('Selected shape:', shape);
-                    }}>
-                        <option value="">Select Shape...</option>
-                        <option value="rectangle">Rectangle</option>
-                        <option value="circle">Circle</option>
-                        <option value="ellipse">Ellipse</option>
-                        <option value="polygon">Polygon</option>
-                        <option value="star">Star</option>
-                    </select>
                 </div>
             </div>
         </aside>
