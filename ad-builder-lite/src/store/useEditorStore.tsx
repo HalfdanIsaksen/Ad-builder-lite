@@ -77,7 +77,7 @@ export const useEditorStore = create<State & Actions>()(
             setTool: (tool: Tool) => set({ currentTool: tool }),
 
             setZoom: (scale: number, x: number = 0, y: number = 0) => {
-                set((state) => ({
+                set(() => ({
                     zoom: {
                         scale: Math.max(0.1, Math.min(5, scale)), // Limit zoom between 10% and 500%
                         x,

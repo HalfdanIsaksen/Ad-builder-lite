@@ -162,7 +162,7 @@ export default function CanvasStage() {
     }
     // Other tools can be implemented here later
   };
-  /*
+  
     // Keyboard shortcuts for zoom If the other works add this
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -170,7 +170,7 @@ export default function CanvasStage() {
         if (e.key === '0' && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
           resetZoom();
-        } else if (e.key === '=' && (e.ctrlKey || e.metaKey)) {
+        } else if (e.key === '+' && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
           setZoom(zoom.scale * 1.2, zoom.x, zoom.y);
         } else if (e.key === '-' && (e.ctrlKey || e.metaKey)) {
@@ -183,7 +183,7 @@ export default function CanvasStage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentTool, zoom, setZoom, resetZoom]);
-  */
+  
   return (
     <div className="flex-1 flex items-center justify-center bg-neutral-100" onDragOver={onDragOver} onDrop={onDrop}>
       {/* Outer frame uses the preset's pixel size */}
