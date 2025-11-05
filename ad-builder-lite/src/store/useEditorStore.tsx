@@ -54,7 +54,7 @@ type Actions = {
 
 export const useEditorStore = create<State & Actions>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             elements: [],
             selectedId: null,
             preset: 'desktop',
@@ -205,6 +205,15 @@ export const useEditorStore = create<State & Actions>()(
             }),
 
             importJSON: (data) => set({ elements: data, selectedId: null }),
+
+            exportAnimationData: () => {
+                const state = get();
+                return {
+                    elements: state.elements,
+                    timeline: state.timeline,
+                    preset: state.preset
+                };
+            },
 
             // Timeline actions
             playTimeline: () => set((s) => ({
