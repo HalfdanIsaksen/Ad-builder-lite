@@ -1,5 +1,6 @@
 // utils/exporters.ts
-import type { AnyEl, TextEl, ImageEl, ButtonEl, CanvasPreset } from '../Types';
+import type { AnyEl, TextEl, ImageEl, ButtonEl, CanvasPreset, TimelineState } from '../Types';
+import { getAnimatedElement } from './animation';
 import { useEditorStore } from '../store/useEditorStore';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
