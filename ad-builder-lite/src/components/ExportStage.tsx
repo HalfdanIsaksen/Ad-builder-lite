@@ -1,7 +1,7 @@
 // ExportStage.tsx
 import { useEffect, useRef, useState } from 'react';
 import type { AnyEl, CanvasPreset } from '../Types';
-import { exportJSON, exportHTML5Banner, exportAnimatedHTML } from '../utils/exporters';
+import { exportJSON, exportHTML5Banner, exportAnimatedHTML, exportAnimatedHTMLZip } from '../utils/exporters';
 import { useEditorStore } from '../store/useEditorStore';
 
 type ExportStageProps = {
@@ -50,7 +50,12 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
         // Zipped HTML5 banner with assets + clickTag, uses exporters.ts
         await exportHTML5Banner(safeElements, preset, { clickUrl, title });
       } else if (tab === 'animated') {
-        // Single .html with CSS keyframes from timeline, uses exporters.ts
+        await exportAnimatedHTMLZip(
+          { elements: safeElements, timeline, preset },
+          { title, clickUrl, filenameBase: animatedFilename || 'animated' }
+        );
+        /* Single .html with CSS keyframes from timeline, uses exporters.ts
+
         const html = exportAnimatedHTML({ elements: safeElements, timeline, preset });
         const blob = new Blob([html], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
@@ -58,7 +63,7 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
         a.href = url;
         a.download = `${animatedFilename || 'animated'}.html`;
         a.click();
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(url);*/
       } else {
         // JSON template export, uses exporters.ts
         await Promise.resolve(exportJSON(safeElements));

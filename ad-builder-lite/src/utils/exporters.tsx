@@ -82,6 +82,13 @@ function escapeHtml(s: string) {
     );
 }
 
+type AnimatedZipOptions = {
+  title?: string;
+  backgroundColor?: string; 
+  clickUrl?: string;       
+  filenameBase?: string;    
+};
+
 export async function exportHTML5Banner(
     elements: AnyEl[],
     preset: CanvasPreset,
@@ -437,4 +444,272 @@ ${generateHTML()}
     </script>
 </body>
 </html>`;
+}
+
+export async function exportAnimatedHTMLZip(
+  data: ExportData,
+  opts: AnimatedZipOptions = {}
+) {
+  const { elements, timeline, preset } = data;
+  const { w, h } = sizes[preset];
+
+  const zip = new JSZip();
+  const assets = zip.folder('assets')!;
+  const filenameBase = (opts.filenameBase || 'animated').replace(/\s+/g, '_');
+
+  // Deduplicate any image-like source into /assets and map -> relative path
+  const srcMap = new Map<string, string>(); // original src -> "assets/name.ext"
+
+  const addBlob = (blob: Blob, name: string, mime?: string) => {
+    const ext = mime ? mimeToExt(mime) : mimeToExt(blob.type || 'image/png');
+    const file = `${name}.${ext}`;
+    assets.file(file, blob);
+    return `assets/${file}`;
+  };
+
+  const fetchAsBlob = async (url: string) => {
+    const res = await fetch(url); // requires CORS-allowed images; data URLs never hit network
+    if (!res.ok) throw new Error(`Failed to fetch asset: ${url}`);
+    return await res.blob();
+  };
+
+  const resolveImageSrc = async (src: string, name: string) => {
+    if (!src) return '';
+    if (srcMap.has(src)) return srcMap.get(src)!;
+
+    if (isDataURL(src)) {
+      const { blob, ext } = dataURLtoBlob(src);
+      const file = `assets/${name}.${ext}`;
+      assets.file(`${name}.${ext}`, blob);
+      srcMap.set(src, file);
+      return file;
+    }
+
+    // http(s) or blob:
+    try {
+      const blob = await fetchAsBlob(src);
+      const file = addBlob(blob, name, blob.type);
+      srcMap.set(src, file);
+      return file;
+    } catch (e) {
+      console.warn('Could not collect asset', src, e);
+      return src; // fallback (may break offline)
+    }
+  };
+
+  // Pre-collect image sources (element images + button bg images)
+  const collectedElements = await Promise.all(
+    elements.map(async (el) => {
+      if (el.type === 'image') {
+        const img = el as ImageEl;
+        const mapped = await resolveImageSrc(img.src, `img_${img.id}`);
+        return { ...el, src: mapped };
+      }
+      if (el.type === 'button') {
+        const btn = el as ButtonEl;
+        if (btn.bgType === 'image' && btn.bgImageSrc) {
+          const mapped = await resolveImageSrc(btn.bgImageSrc, `btnbg_${btn.id}`);
+          return { ...el, bgImageSrc: mapped };
+        }
+      }
+      return el;
+    })
+  );
+
+  // ---------- helpers copied/adapted from string-based animated exporter ----------
+  const generateCSSAnimations = () => {
+    let css = '';
+
+    timeline.tracks.forEach((track) => {
+      const element = collectedElements.find((e) => e.id === track.elementId);
+      if (!element || track.keyframes.length === 0) return;
+
+      const propertiesMap = new Map<string, any[]>();
+      track.keyframes.forEach((kf) => {
+        if (!propertiesMap.has(kf.property)) propertiesMap.set(kf.property, []);
+        propertiesMap.get(kf.property)!.push(kf);
+      });
+
+      propertiesMap.forEach((keyframes, property) => {
+        if (keyframes.length === 0) return;
+        keyframes.sort((a, b) => a.time - b.time);
+
+        const animationName = `${element.id}-${property}`;
+        css += `@keyframes ${animationName} {\n`;
+        keyframes.forEach((kf) => {
+          const pct = (kf.time / timeline.duration) * 100;
+          let cssValue = '';
+
+          if (property === 'position') {
+            const pos = kf.value as { x: number; y: number };
+            cssValue = `transform: translate(${pos.x}px, ${pos.y}px) rotate(${(element as any).rotation || 0}deg);`;
+          } else if (property === 'opacity') {
+            cssValue = `opacity: ${kf.value};`;
+          } else if (property === 'rotation') {
+            cssValue = `transform: translate(${(element as any).x}px, ${(element as any).y}px) rotate(${kf.value}deg);`;
+          } else if (property === 'width' || property === 'height') {
+            cssValue = `${property}: ${kf.value}px;`;
+          }
+
+          css += `  ${pct.toFixed(2)}% { ${cssValue} }\n`;
+        });
+        css += `}\n\n`;
+      });
+    });
+
+    return css;
+  };
+
+  const generateElementCSS = () => {
+    let css = '';
+
+    collectedElements.forEach((element) => {
+      const track = timeline.tracks.find((t) => t.elementId === element.id);
+      const hasAnimations = !!track && track.keyframes.length > 0;
+
+      css += `#${element.id} {\n`;
+      css += `  position: absolute;\n`;
+      css += `  left: ${element.x}px;\n`;
+      css += `  top: ${element.y}px;\n`;
+      css += `  width: ${element.width}px;\n`;
+      css += `  height: ${element.height}px;\n`;
+      css += `  opacity: ${element.opacity || 1};\n`;
+      if ((element as any).rotation) css += `  transform: rotate(${(element as any).rotation}deg);\n`;
+
+      if (element.type === 'text') {
+        const t = element as TextEl;
+        css += `  font-size: ${t.fontSize}px;\n`;
+        css += `  color: ${t.fill || '#000'};\n`;
+        css += `  font-family: ${t.fontFamily || 'Arial, sans-serif'};\n`;
+        css += `  display: flex; align-items: center; justify-content: center;\n`;
+        css += `  white-space: pre-wrap;\n`;
+      } else if (element.type === 'image') {
+        const i = element as ImageEl;
+        css += `  object-fit: ${i.imageFit || 'cover'};\n`;
+        css += `  display: block;\n`;
+      } else if (element.type === 'button') {
+        const b = element as ButtonEl;
+        css += `  background-color: ${b.fill || '#2563eb'};\n`;
+        css += `  color: ${b.textColor || '#fff'};\n`;
+        css += `  border: none; border-radius: 4px; cursor: pointer;\n`;
+        css += `  display: flex; align-items: center; justify-content: center; font-weight: 600;\n`;
+        if (b.bgType === 'image' && b.bgImageSrc) {
+          css += `  background-image: url('./${b.bgImageSrc}');\n`;
+          css += `  background-size: ${b.imageFit || 'cover'};\n`;
+          css += `  background-position: center; background-repeat: no-repeat;\n`;
+        }
+      }
+
+      if (hasAnimations) {
+        const animationNames: string[] = [];
+        const propertiesMap = new Map<string, any[]>();
+        track!.keyframes.forEach((kf) => {
+          if (!propertiesMap.has(kf.property)) {
+            propertiesMap.set(kf.property, []);
+            animationNames.push(`${element.id}-${kf.property}`);
+          }
+        });
+
+        if (animationNames.length > 0) {
+          css += `  animation: ${animationNames.join(', ')};\n`;
+          css += `  animation-duration: ${timeline.duration}s;\n`;
+          css += `  animation-timing-function: ease-out;\n`;
+          css += `  animation-fill-mode: both;\n`;
+          if (timeline.loop) css += `  animation-iteration-count: infinite;\n`;
+        }
+      }
+
+      css += `}\n\n`;
+    });
+
+    return css;
+  };
+
+  const generateHTML = () => {
+    let html = '';
+    collectedElements.forEach((el) => {
+      if (el.type === 'text') {
+        const t = el as TextEl;
+        html += `    <div id="${el.id}" class="element text-element">${escapeHtml(t.text || '')}</div>\n`;
+      } else if (el.type === 'image') {
+        const i = el as ImageEl;
+        // Use <img> with src pointing to collected asset
+        html += `    <img id="${el.id}" class="element image-element" src="./${i.src}" alt="" />\n`;
+      } else if (el.type === 'button') {
+        const b = el as ButtonEl;
+        const label = escapeHtml(b.label || 'Button');
+        if (b.href) {
+          html += `    <a id="${el.id}" class="element button-element" href="${escapeHtml(b.href)}" target="_blank" rel="noopener">${label}</a>\n`;
+        } else {
+          html += `    <button id="${el.id}" class="element button-element">${label}</button>\n`;
+        }
+      }
+    });
+    return html;
+  };
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(opts.title ?? 'Animated Banner')}</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    .banner-container {
+      position: relative;
+      width: ${w}px;
+      height: ${h}px;
+      background: ${opts.backgroundColor ?? '#fff'};
+      border: 1px solid #ddd;
+      overflow: hidden;
+      margin: 0 auto;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      cursor: pointer;
+    }
+    .element { position: absolute; user-select: none; }
+    .button-element { text-decoration: none; transition: opacity .2s ease; }
+    .button-element:hover { opacity: .9; }
+
+    /* Generated keyframes */
+${generateCSSAnimations()}
+
+    /* Element styles */
+${generateElementCSS()}
+  </style>
+  <script>
+    ${opts.clickUrl ? `window.clickTag = ${JSON.stringify(opts.clickUrl)};` : ''}
+    // Optional: open clickTag if defined
+    window.addEventListener('DOMContentLoaded', () => {
+      const c = document.querySelector('.banner-container');
+      if (c && window.clickTag) {
+        c.addEventListener('click', () => window.open(window.clickTag, '_blank'));
+      }
+    });
+  </script>
+</head>
+<body>
+  <div class="banner-container" role="button" aria-label="Open advertiser site">
+${generateHTML()}    <span class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Open advertiser site</span>
+  </div>
+  <script>
+    // Restart on click (optional)
+    const banner = document.querySelector('.banner-container');
+    banner?.addEventListener('click', () => {
+      const els = banner.querySelectorAll('.element');
+      els.forEach(el => {
+        (el as HTMLElement).style.animation = 'none';
+        // @ts-ignore
+        el.offsetHeight;
+        (el as HTMLElement).style.animation = '';
+      });
+    });
+  </script>
+</body>
+</html>`;
+
+  zip.file('index.html', html);
+  const out = await zip.generateAsync({ type: 'blob' });
+  saveAs(out, `${filenameBase}_${w}x${h}.zip`);
 }
