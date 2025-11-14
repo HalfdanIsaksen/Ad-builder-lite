@@ -267,7 +267,7 @@ export default function CanvasStage() {
           </Layer>
         </Stage>
       </div>
-      
+      {/* Should do something about this, either be the first element or maybe a dedicated area to this info */}
       {/* Tool indicator and zoom controls */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-3 py-2 rounded text-sm flex items-center gap-3">
         <span>
@@ -288,7 +288,7 @@ export default function CanvasStage() {
         )}
       </div>
 
-      {/* Zoom tool instructions */}
+      {/* Zoom tool instructions 
       {currentTool === 'zoom' && (
         <div className="absolute top-4 left-4 bg-blue-500 text-white px-3 py-2 rounded text-sm">
           <div className="font-medium mb-1">Zoom Tool</div>
@@ -299,7 +299,7 @@ export default function CanvasStage() {
             <div>• Ctrl+0 to reset zoom</div>
           </div>
         </div>
-      )}
+      )}*/}
     </div>
   );
 }

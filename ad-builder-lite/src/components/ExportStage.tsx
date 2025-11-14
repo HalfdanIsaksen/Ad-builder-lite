@@ -1,6 +1,8 @@
+// ExportStage.tsx
 import { useEffect, useRef, useState } from 'react';
 import type { AnyEl, CanvasPreset } from '../Types';
-import { exportJSON, exportHTML5Banner } from '../utils/exporters';
+import { exportJSON, exportHTML5Banner, exportAnimatedHTML, exportAnimatedHTMLZip } from '../utils/exporters';
+import { useEditorStore } from '../store/useEditorStore';
 
 type ExportStageProps = {
   open: boolean;
@@ -9,18 +11,21 @@ type ExportStageProps = {
   preset: CanvasPreset;
 };
 
-type TabKey = 'html5' | 'json';
+type TabKey = 'html5' | 'animated' | 'json';
 
 export default function ExportStage({ open, onClose, elements, preset }: ExportStageProps) {
- 
   const safeElements = Array.isArray(elements) ? elements : [];
   const [tab, setTab] = useState<TabKey>('html5');
   const [clickUrl, setClickUrl] = useState('https://example.com');
   const [title, setTitle] = useState('Ad Builder Banner');
-  const [htmlFilename, setHtmlFilename] = useState('banner');
+  const [htmlFilename, setHtmlFilename] = useState('banner');            // zip (HTML5)
+  const [animatedFilename, setAnimatedFilename] = useState('animated');  // single .html
   const [jsonFilename, setJsonFilename] = useState('ad-builder');
   const [isBusy, setBusy] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Pull timeline for animated export
+  const timeline = useEditorStore((s) => s.timeline);
 
   useEffect(() => {
     if (!open) return;
@@ -29,22 +34,41 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  
   if (!open) return null;
 
-    // Validation
-  const canExport = tab === 'html5'
-    ? !!clickUrl && !!title && safeElements.length > 0
-    : safeElements.length > 0;
+  // Validation
+  const canExport =
+    tab === 'html5'
+      ? !!clickUrl && !!title && safeElements.length > 0
+      : safeElements.length > 0;
 
   const doExport = async () => {
     try {
       setBusy(true);
+
       if (tab === 'html5') {
+        // Zipped HTML5 banner with assets + clickTag, uses exporters.ts
         await exportHTML5Banner(safeElements, preset, { clickUrl, title });
+      } else if (tab === 'animated') {
+        await exportAnimatedHTMLZip(
+          { elements: safeElements, timeline, preset },
+          { title, clickUrl, filenameBase: animatedFilename || 'animated' }
+        );
+        /* Single .html with CSS keyframes from timeline, uses exporters.ts
+
+        const html = exportAnimatedHTML({ elements: safeElements, timeline, preset });
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${animatedFilename || 'animated'}.html`;
+        a.click();
+        URL.revokeObjectURL(url);*/
       } else {
+        // JSON template export, uses exporters.ts
         await Promise.resolve(exportJSON(safeElements));
       }
+
       onClose();
     } catch (err) {
       console.error(err);
@@ -92,17 +116,23 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
               HTML5 Banner
             </button>
             <button
+              onClick={() => setTab('animated')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${tab === 'animated' ? 'bg-white shadow border border-neutral-200' : 'text-neutral-600'}`}
+            >
+              Animated HTML
+            </button>
+            <button
               onClick={() => setTab('json')}
               className={`px-3 py-1.5 rounded-lg text-sm ${tab === 'json' ? 'bg-white shadow border border-neutral-200' : 'text-neutral-600'}`}
             >
-              Template
+              Template (JSON)
             </button>
           </div>
         </div>
 
         {/* Body */}
         <div className="p-5">
-          {tab === 'html5' ? (
+          {tab === 'html5' && (
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Click-through URL (clickTag)</label>
@@ -131,7 +161,7 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Filename (optional)</label>
+                <label className="block text-sm font-medium mb-1">Filename (zip)</label>
                 <input
                   className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   type="text"
@@ -139,6 +169,7 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
                   value={htmlFilename}
                   onChange={(e) => setHtmlFilename(e.target.value)}
                 />
+                <p className="mt-1 text-xs text-neutral-500">Saved as <code>{htmlFilename || 'banner'}_WxH.zip</code>.</p>
               </div>
 
               <div className="rounded-lg bg-neutral-50 border border-neutral-200 p-3 text-xs text-neutral-700">
@@ -146,10 +177,39 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
                 <div>Exporting for: <span className="font-mono">{preset}</span></div>
               </div>
             </div>
-          ) : (
+          )}
+
+          {tab === 'animated' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Filename (optional)</label>
+                <label className="block text-sm font-medium mb-1">Filename (.html)</label>
+                <input
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  type="text"
+                  placeholder="animated"
+                  value={animatedFilename}
+                  onChange={(e) => setAnimatedFilename(e.target.value)}
+                />
+                <p className="mt-1 text-xs text-neutral-500">
+                  Generates a single HTML file with CSS keyframes using the current timeline.
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-neutral-50 border border-neutral-200 p-3 text-xs text-neutral-700">
+                <div className="font-medium mb-1">Animation summary</div>
+                <ul className="list-disc pl-5">
+                  <li>Preset: <span className="font-mono">{preset}</span></li>
+                  <li>Tracks: {timeline?.tracks?.length ?? 0}</li>
+                  <li>Duration: {timeline?.duration ?? 0}s {timeline?.loop ? '(looping)' : ''}</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {tab === 'json' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Filename (.json)</label>
                 <input
                   className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   type="text"
@@ -157,6 +217,7 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
                   value={jsonFilename}
                   onChange={(e) => setJsonFilename(e.target.value)}
                 />
+                <p className="mt-1 text-xs text-neutral-500">Note: the built-in JSON exporter always saves as <code>ad.json</code>.</p>
               </div>
 
               <div className="rounded-lg bg-neutral-50 border border-neutral-200 p-3 text-xs text-neutral-700">
@@ -174,7 +235,7 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
         <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-neutral-200">
           <button className="btn" onClick={onClose} disabled={isBusy}>Cancel</button>
           <button className="btn" disabled={!canExport || isBusy} onClick={doExport}>
-            {isBusy ? 'Exporting…' : tab === 'html5' ? 'Export HTML5' : 'Export JSON'}
+            {isBusy ? 'Exporting…' : tab === 'html5' ? 'Export HTML5 (zip)' : tab === 'animated' ? 'Export Animated HTML' : 'Export JSON'}
           </button>
         </div>
       </div>
