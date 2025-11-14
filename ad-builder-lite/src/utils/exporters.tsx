@@ -82,6 +82,16 @@ function escapeHtml(s: string) {
     );
 }
 
+function getScale(preset: CanvasPreset) {
+  const { w, h } = sizes[preset];
+  return {
+    sx: w / DESIGN.w,
+    sy: h / DESIGN.h,
+    w,
+    h,
+  };
+}
+
 type AnimatedZipOptions = {
   title?: string;
   backgroundColor?: string; 
