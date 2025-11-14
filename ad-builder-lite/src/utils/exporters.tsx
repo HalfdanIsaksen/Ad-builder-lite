@@ -104,9 +104,7 @@ export async function exportHTML5Banner(
     preset: CanvasPreset,
     opts: ExportOptions
 ) {
-    const { w, h, meta } = sizes[preset];
-    const sx = w / DESIGN.w;
-    const sy = h / DESIGN.h;
+    const { sx, sy, w, h } = getScale(preset);
 
     const zip = new JSZip();
     const assets = zip.folder('assets')!;
@@ -174,7 +172,6 @@ const html = String.raw`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="ad.size" content="${meta}" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${escapeHtml(opts.title ?? 'HTML5 Banner')}</title>
   <style>
@@ -461,7 +458,7 @@ export async function exportAnimatedHTMLZip(
   opts: AnimatedZipOptions = {}
 ) {
   const { elements, timeline, preset } = data;
-  const { w, h } = sizes[preset];
+  const { sx, sy, w, h } = getScale(preset);
 
   const zip = new JSZip();
   const assets = zip.folder('assets')!;
@@ -579,10 +576,10 @@ export async function exportAnimatedHTMLZip(
 
       css += `#${element.id} {\n`;
       css += `  position: absolute;\n`;
-      css += `  left: ${element.x}px;\n`;
-      css += `  top: ${element.y}px;\n`;
-      css += `  width: ${element.width}px;\n`;
-      css += `  height: ${element.height}px;\n`;
+      css += `  left: ${element.x * sx}px;\n`;
+      css += `  top: ${element.y * sy}px;\n`;
+      css += `  width: ${element.width * sx}px;\n`;
+      css += `  height: ${element.height * sy}px;\n`;
       css += `  opacity: ${element.opacity || 1};\n`;
       if ((element as any).rotation) css += `  transform: rotate(${(element as any).rotation}deg);\n`;
 
