@@ -6,80 +6,80 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
 //Elements used for both JSON and HTML5 exporters and importers
-interface ExportData{
-    elements: AnyEl[];
-    timeline: TimelineState;
-    preset: CanvasPreset;
+interface ExportData {
+  elements: AnyEl[];
+  timeline: TimelineState;
+  preset: CanvasPreset;
 }
 const DESIGN = { w: 970, h: 250 }; // canonical design space (matches CanvasStage)
 
 const sizes: Record<CanvasPreset, { w: number; h: number; meta: string; label: string }> = {
-    desktop: { w: 970, h: 250, meta: 'width=970,height=250', label: 'Desktop 970×250' },
-    tablet: { w: 728, h: 90, meta: 'width=728,height=90', label: 'Tablet 728×90' },
-    mobile: { w: 320, h: 100, meta: 'width=320,height=100', label: 'Mobile 320×100' },
+  desktop: { w: 970, h: 250, meta: 'width=970,height=250', label: 'Desktop 970×250' },
+  tablet: { w: 728, h: 90, meta: 'width=728,height=90', label: 'Tablet 728×90' },
+  mobile: { w: 320, h: 100, meta: 'width=320,height=100', label: 'Mobile 320×100' },
 };
 
 type ExportOptions = {
-    clickUrl: string;            // required by ad networks as window.clickTag
-    title?: string;              // <title>
-    backgroundColor?: string;    // banner background (default white)
+  clickUrl: string;            // required by ad networks as window.clickTag
+  title?: string;              // <title>
+  backgroundColor?: string;    // banner background (default white)
 };
 
 // ---------------- JSON exporters ----------------
 export function exportJSON(elements: AnyEl[]) {
-    const blob = new Blob([JSON.stringify(elements, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'ad.json'; a.click();
-    URL.revokeObjectURL(url);
+  const blob = new Blob([JSON.stringify(elements, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'ad.json'; a.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function importJSONDialog() {
-    const input = document.createElement('input');
-    input.type = 'file'; input.accept = 'application/json';
-    input.onchange = async () => {
-        const file = input.files?.[0];
-        if (!file) return;
-        const text = await file.text();
-        try {
-            const data = JSON.parse(text);
-            useEditorStore.getState().importJSON(data);
-        } catch {
-            alert('Invalid JSON file');
-        }
-    };
-    input.click();
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'application/json';
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    try {
+      const data = JSON.parse(text);
+      useEditorStore.getState().importJSON(data);
+    } catch {
+      alert('Invalid JSON file');
+    }
+  };
+  input.click();
 }
 
 // ---------------- HTML5 banner exporter ----------------
 function isDataURL(s: string) {
-    return /^data:image\/(png|jpe?g|gif|webp);base64,/.test(s);
+  return /^data:image\/(png|jpe?g|gif|webp);base64,/.test(s);
 }
 
 function dataURLtoBlob(dataUrl: string) {
-    const [head, body] = dataUrl.split(',');
-    const mime = head.match(/data:([^;]+);/)?.[1] ?? 'image/png';
-    const bin = atob(body);
-    const u8 = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    return { blob: new Blob([u8], { type: mime }), ext: mimeToExt(mime) };
+  const [head, body] = dataUrl.split(',');
+  const mime = head.match(/data:([^;]+);/)?.[1] ?? 'image/png';
+  const bin = atob(body);
+  const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return { blob: new Blob([u8], { type: mime }), ext: mimeToExt(mime) };
 }
 
 function mimeToExt(mime: string) {
-    if (mime.includes('png')) return 'png';
-    if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
-    if (mime.includes('webp')) return 'webp';
-    if (mime.includes('gif')) return 'gif';
-    return 'bin';
+  if (mime.includes('png')) return 'png';
+  if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
+  if (mime.includes('webp')) return 'webp';
+  if (mime.includes('gif')) return 'gif';
+  return 'bin';
 }
 
 function escapeHtml(s: string) {
-    return String(s).replace(/[&<>"']/g, (ch) =>
-        ch === '&' ? '&amp;' :
-            ch === '<' ? '&lt;' :
-                ch === '>' ? '&gt;' :
-                    ch === '"' ? '&quot;' : '&#39;'
-    );
+  return String(s).replace(/[&<>"']/g, (ch) =>
+    ch === '&' ? '&amp;' :
+      ch === '<' ? '&lt;' :
+        ch === '>' ? '&gt;' :
+          ch === '"' ? '&quot;' : '&#39;'
+  );
 }
 
 function getScale(preset: CanvasPreset) {
@@ -94,81 +94,81 @@ function getScale(preset: CanvasPreset) {
 
 type AnimatedZipOptions = {
   title?: string;
-  backgroundColor?: string; 
-  clickUrl?: string;       
-  filenameBase?: string;    
+  backgroundColor?: string;
+  clickUrl?: string;
+  filenameBase?: string;
 };
 
 export async function exportHTML5Banner(
-    elements: AnyEl[],
-    preset: CanvasPreset,
-    opts: ExportOptions
+  elements: AnyEl[],
+  preset: CanvasPreset,
+  opts: ExportOptions
 ) {
-    const { sx, sy, w, h } = getScale(preset);
+  const { sx, sy, w, h } = getScale(preset);
 
-    const zip = new JSZip();
-    const assets = zip.folder('assets')!;
+  const zip = new JSZip();
+  const assets = zip.folder('assets')!;
 
-    // Deduplicate embedded images (data URLs) → add to /assets and map to filenames
-    const imageMap = new Map<string, string>(); // dataURL -> "assets/name.ext"
-    const addImageFromDataURL = (dataUrl: string, name: string) => {
-        const { blob, ext } = dataURLtoBlob(dataUrl);
-        const filename = `assets/${name}.${ext}`;
-        assets.file(`${name}.${ext}`, blob);
-        imageMap.set(dataUrl, filename);
-        return filename;
-    };
+  // Deduplicate embedded images (data URLs) → add to /assets and map to filenames
+  const imageMap = new Map<string, string>(); // dataURL -> "assets/name.ext"
+  const addImageFromDataURL = (dataUrl: string, name: string) => {
+    const { blob, ext } = dataURLtoBlob(dataUrl);
+    const filename = `assets/${name}.${ext}`;
+    assets.file(`${name}.${ext}`, blob);
+    imageMap.set(dataUrl, filename);
+    return filename;
+  };
 
-    const layers: string[] = [];
+  const layers: string[] = [];
 
-    for (const el of elements) {
-        const rot = (el as any).rotation ?? 0;
-        const op = (el as any).opacity ?? 1;
-        const baseStyle = (
-            left: number, top: number, width?: number, height?: number, extra = ''
-        ) =>
-            `position:absolute;left:${left * sx}px;top:${top * sy}px;` +
-            (width != null ? `width:${width * sx}px;` : '') +
-            (height != null ? `height:${height * sy}px;` : '') +
-            `opacity:${op};transform-origin:0 0;transform:rotate(${rot}deg);${extra}`;
+  for (const el of elements) {
+    const rot = (el as any).rotation ?? 0;
+    const op = (el as any).opacity ?? 1;
+    const baseStyle = (
+      left: number, top: number, width?: number, height?: number, extra = ''
+    ) =>
+      `position:absolute;left:${left * sx}px;top:${top * sy}px;` +
+      (width != null ? `width:${width * sx}px;` : '') +
+      (height != null ? `height:${height * sy}px;` : '') +
+      `opacity:${op};transform-origin:0 0;transform:rotate(${rot}deg);${extra}`;
 
-        if (el.type === 'text') {
-            const t = el as TextEl;
-            const fs = Math.max(1, (t.fontSize ?? 16) * sy);
-            layers.push(
-                `<div class="layer text" style="${baseStyle(t.x, t.y, t.width, t.height, `color:${t.fill ?? '#111'};font-size:${fs}px;line-height:1.15;font-weight:600;white-space:pre-wrap;`)}">${escapeHtml(t.text ?? '')}</div>`
-            );
-            continue;
-        }
-
-        if (el.type === 'image') {
-            const i = el as ImageEl;
-            let src = i.src;
-            if (isDataURL(src)) src = imageMap.get(src) ?? addImageFromDataURL(src, `img_${i.id}`);
-            layers.push(
-                `<img class="layer image" src="./${src}" alt="" style="${baseStyle(i.x, i.y, i.width, i.height, 'object-fit:cover;')}">`
-            );
-            continue;
-        }
-
-        if (el.type === 'button') {
-            const b = el as ButtonEl;
-            let bg = `background:${b.fill ?? '#2563eb'};`;
-            if (b.bgType === 'image' && b.bgImageSrc) {
-                let bgSrc = b.bgImageSrc;
-                if (isDataURL(bgSrc)) bgSrc = imageMap.get(bgSrc) ?? addImageFromDataURL(bgSrc, `btnbg_${b.id}`);
-                const fit = b.imageFit ?? 'stretch';
-                const sizeRule = fit === 'contain' ? 'contain' : fit === 'cover' ? 'cover' : '100% 100%';
-                bg = `background-image:url('./${bgSrc}');background-repeat:no-repeat;background-position:center;background-size:${sizeRule};`;
-            }
-            layers.push(
-                `<div class="layer button" style="${baseStyle(b.x, b.y, b.width, b.height, `border-radius:12px;display:flex;align-items:center;justify-content:center;${bg}`)}"><span style="color:${b.textColor ?? '#fff'};font-weight:600;">${escapeHtml(b.label ?? 'Button')}</span></div>`
-            );
-            continue;
-        }
+    if (el.type === 'text') {
+      const t = el as TextEl;
+      const fs = Math.max(1, (t.fontSize ?? 16) * sy);
+      layers.push(
+        `<div class="layer text" style="${baseStyle(t.x, t.y, t.width, t.height, `color:${t.fill ?? '#111'};font-size:${fs}px;line-height:1.15;font-weight:600;white-space:pre-wrap;`)}">${escapeHtml(t.text ?? '')}</div>`
+      );
+      continue;
     }
 
-const html = String.raw`<!DOCTYPE html>
+    if (el.type === 'image') {
+      const i = el as ImageEl;
+      let src = i.src;
+      if (isDataURL(src)) src = imageMap.get(src) ?? addImageFromDataURL(src, `img_${i.id}`);
+      layers.push(
+        `<img class="layer image" src="./${src}" alt="" style="${baseStyle(i.x, i.y, i.width, i.height, 'object-fit:cover;')}">`
+      );
+      continue;
+    }
+
+    if (el.type === 'button') {
+      const b = el as ButtonEl;
+      let bg = `background:${b.fill ?? '#2563eb'};`;
+      if (b.bgType === 'image' && b.bgImageSrc) {
+        let bgSrc = b.bgImageSrc;
+        if (isDataURL(bgSrc)) bgSrc = imageMap.get(bgSrc) ?? addImageFromDataURL(bgSrc, `btnbg_${b.id}`);
+        const fit = b.imageFit ?? 'stretch';
+        const sizeRule = fit === 'contain' ? 'contain' : fit === 'cover' ? 'cover' : '100% 100%';
+        bg = `background-image:url('./${bgSrc}');background-repeat:no-repeat;background-position:center;background-size:${sizeRule};`;
+      }
+      layers.push(
+        `<div class="layer button" style="${baseStyle(b.x, b.y, b.width, b.height, `border-radius:12px;display:flex;align-items:center;justify-content:center;${bg}`)}"><span style="color:${b.textColor ?? '#fff'};font-weight:600;">${escapeHtml(b.label ?? 'Button')}</span></div>`
+      );
+      continue;
+    }
+  }
+
+  const html = String.raw`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -199,179 +199,179 @@ ${layers.join('\n')}
 </body>
 </html>`;
 
-    zip.file('index.html', html);
-    const blob = await zip.generateAsync({ type: 'blob' });
-    saveAs(blob, `banner_${w}x${h}.zip`);
+  zip.file('index.html', html);
+  const blob = await zip.generateAsync({ type: 'blob' });
+  saveAs(blob, `banner_${w}x${h}.zip`);
 }
 
 
 export function exportAnimatedHTML(data: ExportData): string {
-    const { elements, timeline, preset } = data;
-    const size = sizes[preset];
-    
-    // Generate CSS animations for each animated element
-    const generateCSSAnimations = () => {
-        let css = '';
-        
-        timeline.tracks.forEach(track => {
-            const element = elements.find(e => e.id === track.elementId);
-            if (!element || track.keyframes.length === 0) return;
-            
-            // Group keyframes by property
-            const propertiesMap = new Map<string, any[]>();
-            track.keyframes.forEach(kf => {
-                if (!propertiesMap.has(kf.property)) {
-                    propertiesMap.set(kf.property, []);
-                }
-                propertiesMap.get(kf.property)!.push(kf);
-            });
+  const { elements, timeline, preset } = data;
+  const size = sizes[preset];
 
-            // Generate CSS keyframes for each property
-            propertiesMap.forEach((keyframes, property) => {
-                if (keyframes.length === 0) return;
-                
-                keyframes.sort((a, b) => a.time - b.time);
-                
-                const animationName = `${element.id}-${property}`;
-                css += `@keyframes ${animationName} {\n`;
-                
-                keyframes.forEach(kf => {
-                    const percentage = (kf.time / timeline.duration) * 100;
-                    let cssValue = '';
-                    
-                    if (property === 'position') {
-                        const pos = kf.value as { x: number; y: number };
-                        cssValue = `transform: translate(${pos.x}px, ${pos.y}px) rotate(${element.rotation || 0}deg);`;
-                    } else if (property === 'opacity') {
-                        cssValue = `opacity: ${kf.value};`;
-                    } else if (property === 'rotation') {
-                        cssValue = `transform: translate(${element.x}px, ${element.y}px) rotate(${kf.value}deg);`;
-                    } else if (property === 'width' || property === 'height') {
-                        cssValue = `${property}: ${kf.value}px;`;
-                    }
-                    
-                    css += `  ${percentage.toFixed(2)}% { ${cssValue} }\n`;
-                });
-                
-                css += `}\n\n`;
-            });
+  // Generate CSS animations for each animated element
+  const generateCSSAnimations = () => {
+    let css = '';
+
+    timeline.tracks.forEach(track => {
+      const element = elements.find(e => e.id === track.elementId);
+      if (!element || track.keyframes.length === 0) return;
+
+      // Group keyframes by property
+      const propertiesMap = new Map<string, any[]>();
+      track.keyframes.forEach(kf => {
+        if (!propertiesMap.has(kf.property)) {
+          propertiesMap.set(kf.property, []);
+        }
+        propertiesMap.get(kf.property)!.push(kf);
+      });
+
+      // Generate CSS keyframes for each property
+      propertiesMap.forEach((keyframes, property) => {
+        if (keyframes.length === 0) return;
+
+        keyframes.sort((a, b) => a.time - b.time);
+
+        const animationName = `${element.id}-${property}`;
+        css += `@keyframes ${animationName} {\n`;
+
+        keyframes.forEach(kf => {
+          const percentage = (kf.time / timeline.duration) * 100;
+          let cssValue = '';
+
+          if (property === 'position') {
+            const pos = kf.value as { x: number; y: number };
+            cssValue = `transform: translate(${pos.x}px, ${pos.y}px) rotate(${element.rotation || 0}deg);`;
+          } else if (property === 'opacity') {
+            cssValue = `opacity: ${kf.value};`;
+          } else if (property === 'rotation') {
+            cssValue = `transform: translate(${element.x}px, ${element.y}px) rotate(${kf.value}deg);`;
+          } else if (property === 'width' || property === 'height') {
+            cssValue = `${property}: ${kf.value}px;`;
+          }
+
+          css += `  ${percentage.toFixed(2)}% { ${cssValue} }\n`;
         });
-        
-        return css;
-    };
 
-    // Generate CSS for element styling and animations
-    const generateElementCSS = () => {
-        let css = '';
-        
-        elements.forEach(element => {
-            const track = timeline.tracks.find(t => t.elementId === element.id);
-            const hasAnimations = track && track.keyframes.length > 0;
-            
-            css += `#${element.id} {\n`;
-            css += `  position: absolute;\n`;
-            css += `  left: ${element.x}px;\n`;
-            css += `  top: ${element.y}px;\n`;
-            css += `  width: ${element.width}px;\n`;
-            css += `  height: ${element.height}px;\n`;
-            css += `  opacity: ${element.opacity || 1};\n`;
-            
-            if (element.rotation) {
-                css += `  transform: rotate(${element.rotation}deg);\n`;
-            }
-            
-            // Element-specific styles
-            if (element.type === 'text') {
-                const textEl = element as any;
-                css += `  font-size: ${textEl.fontSize}px;\n`;
-                css += `  color: ${textEl.fill || '#000'};\n`;
-                css += `  font-family: ${textEl.fontFamily || 'Arial, sans-serif'};\n`;
-                css += `  display: flex;\n`;
-                css += `  align-items: center;\n`;
-                css += `  justify-content: center;\n`;
-            } else if (element.type === 'image') {
-                const imgEl = element as any;
-                css += `  background-image: url('${imgEl.src}');\n`;
-                css += `  background-size: ${imgEl.imageFit || 'cover'};\n`;
-                css += `  background-position: center;\n`;
-                css += `  background-repeat: no-repeat;\n`;
-            } else if (element.type === 'button') {
-                const btnEl = element as any;
-                css += `  background-color: ${btnEl.fill || '#2563eb'};\n`;
-                css += `  color: ${btnEl.textColor || '#fff'};\n`;
-                css += `  border: none;\n`;
-                css += `  border-radius: 4px;\n`;
-                css += `  cursor: pointer;\n`;
-                css += `  display: flex;\n`;
-                css += `  align-items: center;\n`;
-                css += `  justify-content: center;\n`;
-                css += `  font-weight: 600;\n`;
-                
-                if (btnEl.bgType === 'image' && btnEl.bgImageSrc) {
-                    css += `  background-image: url('${btnEl.bgImageSrc}');\n`;
-                    css += `  background-size: ${btnEl.imageFit || 'cover'};\n`;
-                    css += `  background-position: center;\n`;
-                }
-            }
-            
-            // Add animations if they exist
-            if (hasAnimations) {
-                const animationNames: string[] = [];
-                const propertiesMap = new Map<string, any[]>();
-                
-                track!.keyframes.forEach(kf => {
-                    if (!propertiesMap.has(kf.property)) {
-                        propertiesMap.set(kf.property, []);
-                        animationNames.push(`${element.id}-${kf.property}`);
-                    }
-                });
-                
-                if (animationNames.length > 0) {
-                    css += `  animation: ${animationNames.join(', ')};\n`;
-                    css += `  animation-duration: ${timeline.duration}s;\n`;
-                    css += `  animation-timing-function: ease-out;\n`;
-                    css += `  animation-fill-mode: both;\n`;
-                    
-                    if (timeline.loop) {
-                        css += `  animation-iteration-count: infinite;\n`;
-                    }
-                }
-            }
-            
-            css += `}\n\n`;
+        css += `}\n\n`;
+      });
+    });
+
+    return css;
+  };
+
+  // Generate CSS for element styling and animations
+  const generateElementCSS = () => {
+    let css = '';
+
+    elements.forEach(element => {
+      const track = timeline.tracks.find(t => t.elementId === element.id);
+      const hasAnimations = track && track.keyframes.length > 0;
+
+      css += `#${element.id} {\n`;
+      css += `  position: absolute;\n`;
+      css += `  left: ${element.x}px;\n`;
+      css += `  top: ${element.y}px;\n`;
+      css += `  width: ${element.width}px;\n`;
+      css += `  height: ${element.height}px;\n`;
+      css += `  opacity: ${element.opacity || 1};\n`;
+
+      if (element.rotation) {
+        css += `  transform: rotate(${element.rotation}deg);\n`;
+      }
+
+      // Element-specific styles
+      if (element.type === 'text') {
+        const textEl = element as any;
+        css += `  font-size: ${textEl.fontSize}px;\n`;
+        css += `  color: ${textEl.fill || '#000'};\n`;
+        css += `  font-family: ${textEl.fontFamily || 'Arial, sans-serif'};\n`;
+        css += `  display: flex;\n`;
+        css += `  align-items: center;\n`;
+        css += `  justify-content: center;\n`;
+      } else if (element.type === 'image') {
+        const imgEl = element as any;
+        css += `  background-image: url('${imgEl.src}');\n`;
+        css += `  background-size: ${imgEl.imageFit || 'cover'};\n`;
+        css += `  background-position: center;\n`;
+        css += `  background-repeat: no-repeat;\n`;
+      } else if (element.type === 'button') {
+        const btnEl = element as any;
+        css += `  background-color: ${btnEl.fill || '#2563eb'};\n`;
+        css += `  color: ${btnEl.textColor || '#fff'};\n`;
+        css += `  border: none;\n`;
+        css += `  border-radius: 4px;\n`;
+        css += `  cursor: pointer;\n`;
+        css += `  display: flex;\n`;
+        css += `  align-items: center;\n`;
+        css += `  justify-content: center;\n`;
+        css += `  font-weight: 600;\n`;
+
+        if (btnEl.bgType === 'image' && btnEl.bgImageSrc) {
+          css += `  background-image: url('${btnEl.bgImageSrc}');\n`;
+          css += `  background-size: ${btnEl.imageFit || 'cover'};\n`;
+          css += `  background-position: center;\n`;
+        }
+      }
+
+      // Add animations if they exist
+      if (hasAnimations) {
+        const animationNames: string[] = [];
+        const propertiesMap = new Map<string, any[]>();
+
+        track!.keyframes.forEach(kf => {
+          if (!propertiesMap.has(kf.property)) {
+            propertiesMap.set(kf.property, []);
+            animationNames.push(`${element.id}-${kf.property}`);
+          }
         });
-        
-        return css;
-    };
 
-    // Generate HTML elements
-    const generateHTML = () => {
-        let html = '';
-        
-        elements.forEach(element => {
-            if (element.type === 'text') {
-                const textEl = element as any;
-                html += `    <div id="${element.id}" class="element text-element">${textEl.text}</div>\n`;
-            } else if (element.type === 'image') {
-                html += `    <div id="${element.id}" class="element image-element"></div>\n`;
-            } else if (element.type === 'button') {
-                const btnEl = element as any;
-                const href = btnEl.href ? ` href="${btnEl.href}"` : '';
-                const target = btnEl.href ? ' target="_blank"' : '';
-                
-                if (btnEl.href) {
-                    html += `    <a id="${element.id}" class="element button-element"${href}${target}>${btnEl.label}</a>\n`;
-                } else {
-                    html += `    <button id="${element.id}" class="element button-element">${btnEl.label}</button>\n`;
-                }
-            }
-        });
-        
-        return html;
-    };
+        if (animationNames.length > 0) {
+          css += `  animation: ${animationNames.join(', ')};\n`;
+          css += `  animation-duration: ${timeline.duration}s;\n`;
+          css += `  animation-timing-function: ease-out;\n`;
+          css += `  animation-fill-mode: both;\n`;
 
-    // Complete HTML template
-    return `<!DOCTYPE html>
+          if (timeline.loop) {
+            css += `  animation-iteration-count: infinite;\n`;
+          }
+        }
+      }
+
+      css += `}\n\n`;
+    });
+
+    return css;
+  };
+
+  // Generate HTML elements
+  const generateHTML = () => {
+    let html = '';
+
+    elements.forEach(element => {
+      if (element.type === 'text') {
+        const textEl = element as any;
+        html += `    <div id="${element.id}" class="element text-element">${textEl.text}</div>\n`;
+      } else if (element.type === 'image') {
+        html += `    <div id="${element.id}" class="element image-element"></div>\n`;
+      } else if (element.type === 'button') {
+        const btnEl = element as any;
+        const href = btnEl.href ? ` href="${btnEl.href}"` : '';
+        const target = btnEl.href ? ' target="_blank"' : '';
+
+        if (btnEl.href) {
+          html += `    <a id="${element.id}" class="element button-element"${href}${target}>${btnEl.label}</a>\n`;
+        } else {
+          html += `    <button id="${element.id}" class="element button-element">${btnEl.label}</button>\n`;
+        }
+      }
+    });
+
+    return html;
+  };
+
+  // Complete HTML template
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -549,15 +549,16 @@ export async function exportAnimatedHTMLZip(
 
           if (property === 'position') {
             const pos = kf.value as { x: number; y: number };
-            cssValue = `transform: translate(${pos.x}px, ${pos.y}px) rotate(${(element as any).rotation || 0}deg);`;
+            cssValue = `transform: translate(${pos.x * sx}px, ${pos.y * sy}px) rotate(${(element as any).rotation || 0}deg);`;
           } else if (property === 'opacity') {
             cssValue = `opacity: ${kf.value};`;
           } else if (property === 'rotation') {
-            cssValue = `transform: translate(${(element as any).x}px, ${(element as any).y}px) rotate(${kf.value}deg);`;
-          } else if (property === 'width' || property === 'height') {
-            cssValue = `${property}: ${kf.value}px;`;
+            cssValue = `transform: translate(${(element as any).x * sx}px, ${(element as any).y * sy}px) rotate(${kf.value}deg);`;
+          } else if (property === 'width') {
+            cssValue = `width: ${kf.value * sx}px;`;
+          } else if (property === 'height') {
+            cssValue = `height: ${kf.value * sy}px;`;
           }
-
           css += `  ${pct.toFixed(2)}% { ${cssValue} }\n`;
         });
         css += `}\n\n`;
