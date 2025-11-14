@@ -543,30 +543,37 @@ export async function exportAnimatedHTMLZip(
 
         const animationName = `${element.id}-${property}`;
         css += `@keyframes ${animationName} {\n`;
+
         keyframes.forEach((kf) => {
           const pct = (kf.time / timeline.duration) * 100;
           let cssValue = '';
 
           if (property === 'position') {
             const pos = kf.value as { x: number; y: number };
-            cssValue = `transform: translate(${pos.x * sx}px, ${pos.y * sy}px) rotate(${(element as any).rotation || 0}deg);`;
+            //animate absolute position, same as editor
+            cssValue = `left: ${pos.x * sx}px; top: ${pos.y * sy}px;`;
           } else if (property === 'opacity') {
             cssValue = `opacity: ${kf.value};`;
           } else if (property === 'rotation') {
-            cssValue = `transform: translate(${(element as any).x * sx}px, ${(element as any).y * sy}px) rotate(${kf.value}deg);`;
+            // only rotation uses transform
+            cssValue = `transform: rotate(${kf.value}deg);`;
           } else if (property === 'width') {
             cssValue = `width: ${kf.value * sx}px;`;
           } else if (property === 'height') {
             cssValue = `height: ${kf.value * sy}px;`;
           }
+
           css += `  ${pct.toFixed(2)}% { ${cssValue} }\n`;
         });
+
         css += `}\n\n`;
       });
     });
 
     return css;
   };
+
+
 
   const generateElementCSS = () => {
     let css = '';
@@ -582,11 +589,12 @@ export async function exportAnimatedHTMLZip(
       css += `  width: ${element.width * sx}px;\n`;
       css += `  height: ${element.height * sy}px;\n`;
       css += `  opacity: ${element.opacity || 1};\n`;
+      css += `  transform-origin: 0 0;\n`;
       if ((element as any).rotation) css += `  transform: rotate(${(element as any).rotation}deg);\n`;
 
       if (element.type === 'text') {
         const t = element as TextEl;
-        css += `  font-size: ${t.fontSize}px;\n`;
+        css += `  font-size: ${(t.fontSize || 16) * sy}px;\n`; // Scale font size
         css += `  color: ${t.fill || '#000'};\n`;
         css += `  font-family: ${t.fontFamily || 'Arial, sans-serif'};\n`;
         css += `  display: flex; align-items: center; justify-content: center;\n`;
@@ -594,13 +602,16 @@ export async function exportAnimatedHTMLZip(
       } else if (element.type === 'image') {
         const i = element as ImageEl;
         css += `  object-fit: ${i.imageFit || 'cover'};\n`;
+        css += `  object-position: center;\n`;
         css += `  display: block;\n`;
+        // Remove the duplicate width/height lines - they're already set above
       } else if (element.type === 'button') {
         const b = element as ButtonEl;
         css += `  background-color: ${b.fill || '#2563eb'};\n`;
         css += `  color: ${b.textColor || '#fff'};\n`;
-        css += `  border: none; border-radius: 4px; cursor: pointer;\n`;
+        css += `  border: none; border-radius: ${12 * Math.min(sx, sy)}px; cursor: pointer;\n`; // Scale border radius
         css += `  display: flex; align-items: center; justify-content: center; font-weight: 600;\n`;
+        css += `  font-size: ${14 * sy}px;\n`; // Scale button text size
         if (b.bgType === 'image' && b.bgImageSrc) {
           css += `  background-image: url('./${b.bgImageSrc}');\n`;
           css += `  background-size: ${b.imageFit || 'cover'};\n`;
