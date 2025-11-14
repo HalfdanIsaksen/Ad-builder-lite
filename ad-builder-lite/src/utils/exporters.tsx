@@ -523,149 +523,191 @@ export async function exportAnimatedHTMLZip(
     })
   );
 
-  // ---------- helpers copied/adapted from string-based animated exporter ----------
-  const generateCSSAnimations = () => {
-    let css = '';
+// Fixed generateElementCSS function for exportAnimatedHTMLZip
+const generateElementCSS = () => {
+  let css = '';
 
-    timeline.tracks.forEach((track) => {
-      const element = collectedElements.find((e) => e.id === track.elementId);
-      if (!element || track.keyframes.length === 0) return;
+  collectedElements.forEach((element) => {
+    const track = timeline.tracks.find((t) => t.elementId === element.id);
+    const hasAnimations = !!track && track.keyframes.length > 0;
 
+    css += `#${element.id} {\n`;
+    css += `  position: absolute;\n`;
+    css += `  left: ${element.x * sx}px;\n`;
+    css += `  top: ${element.y * sy}px;\n`;
+    css += `  width: ${element.width * sx}px;\n`;
+    css += `  height: ${element.height * sy}px;\n`;
+    css += `  opacity: ${element.opacity || 1};\n`;
+    css += `  box-sizing: border-box;\n`;
+
+    // Handle rotation - but avoid conflicts with position animations
+    const hasPositionAnimation = hasAnimations && track!.keyframes.some(kf => kf.property === 'position');
+    const hasRotationAnimation = hasAnimations && track!.keyframes.some(kf => kf.property === 'rotation');
+    
+    if ((element as any).rotation && !hasRotationAnimation) {
+      css += `  transform: rotate(${(element as any).rotation}deg);\n`;
+    }
+    css += `  transform-origin: center center;\n`;
+
+    if (element.type === 'text') {
+      const t = element as TextEl;
+      css += `  font-size: ${(t.fontSize || 16) * sy}px;\n`;
+      css += `  color: ${t.fill || '#000'};\n`;
+      css += `  font-family: ${t.fontFamily || 'Arial, sans-serif'};\n`;
+      css += `  display: flex;\n`;
+      css += `  align-items: center;\n`;
+      css += `  justify-content: center;\n`;
+      css += `  white-space: pre-wrap;\n`;
+    } else if (element.type === 'image') {
+      const i = element as ImageEl;
+      // Use background-image approach for better animation compatibility
+      css += `  background-image: url('./${i.src}');\n`;
+      css += `  background-size: ${i.imageFit || 'cover'};\n`;
+      css += `  background-position: center;\n`;
+      css += `  background-repeat: no-repeat;\n`;
+      css += `  display: block;\n`;
+    } else if (element.type === 'button') {
+      const b = element as ButtonEl;
+      css += `  background-color: ${b.fill || '#2563eb'};\n`;
+      css += `  color: ${b.textColor || '#fff'};\n`;
+      css += `  border: none;\n`;
+      css += `  border-radius: ${12 * Math.min(sx, sy)}px;\n`;
+      css += `  cursor: pointer;\n`;
+      css += `  display: flex;\n`;
+      css += `  align-items: center;\n`;
+      css += `  justify-content: center;\n`;
+      css += `  font-weight: 600;\n`;
+      css += `  font-size: ${14 * sy}px;\n`;
+      css += `  text-decoration: none;\n`;
+      
+      if (b.bgType === 'image' && b.bgImageSrc) {
+        css += `  background-image: url('./${b.bgImageSrc}');\n`;
+        css += `  background-size: ${b.imageFit || 'cover'};\n`;
+        css += `  background-position: center;\n`;
+        css += `  background-repeat: no-repeat;\n`;
+      }
+    }
+
+    // Add animations if they exist
+    if (hasAnimations) {
+      const animationNames: string[] = [];
       const propertiesMap = new Map<string, any[]>();
-      track.keyframes.forEach((kf) => {
-        if (!propertiesMap.has(kf.property)) propertiesMap.set(kf.property, []);
-        propertiesMap.get(kf.property)!.push(kf);
+      
+      track!.keyframes.forEach((kf) => {
+        if (!propertiesMap.has(kf.property)) {
+          propertiesMap.set(kf.property, []);
+          animationNames.push(`${element.id}-${kf.property}`);
+        }
       });
 
-      propertiesMap.forEach((keyframes, property) => {
-        if (keyframes.length === 0) return;
-        keyframes.sort((a, b) => a.time - b.time);
+      if (animationNames.length > 0) {
+        css += `  animation-name: ${animationNames.join(', ')};\n`;
+        css += `  animation-duration: ${timeline.duration}s;\n`;
+        css += `  animation-timing-function: ease-out;\n`;
+        css += `  animation-fill-mode: both;\n`;
+        css += `  animation-play-state: running;\n`;
+        
+        if (timeline.loop) {
+          css += `  animation-iteration-count: infinite;\n`;
+        } else {
+          css += `  animation-iteration-count: 1;\n`;
+        }
+      }
+    }
 
-        const animationName = `${element.id}-${property}`;
-        css += `@keyframes ${animationName} {\n`;
+    css += `}\n\n`;
+  });
 
-        keyframes.forEach((kf) => {
-          const pct = (kf.time / timeline.duration) * 100;
-          let cssValue = '';
+  return css;
+};
 
-          if (property === 'position') {
-            const pos = kf.value as { x: number; y: number };
-            //animate absolute position, same as editor
-            cssValue = `left: ${pos.x * sx}px; top: ${pos.y * sy}px;`;
-          } else if (property === 'opacity') {
-            cssValue = `opacity: ${kf.value};`;
-          } else if (property === 'rotation') {
-            // only rotation uses transform
-            cssValue = `transform: rotate(${kf.value}deg);`;
-          } else if (property === 'width') {
-            cssValue = `width: ${kf.value * sx}px;`;
-          } else if (property === 'height') {
-            cssValue = `height: ${kf.value * sy}px;`;
-          }
+// Fixed generateCSSAnimations function
+const generateCSSAnimations = () => {
+  let css = '';
 
-          css += `  ${pct.toFixed(2)}% { ${cssValue} }\n`;
-        });
+  timeline.tracks.forEach((track) => {
+    const element = collectedElements.find((e) => e.id === track.elementId);
+    if (!element || track.keyframes.length === 0) return;
 
-        css += `}\n\n`;
-      });
+    const propertiesMap = new Map<string, any[]>();
+    track.keyframes.forEach((kf) => {
+      if (!propertiesMap.has(kf.property)) propertiesMap.set(kf.property, []);
+      propertiesMap.get(kf.property)!.push(kf);
     });
 
-    return css;
-  };
+    propertiesMap.forEach((keyframes, property) => {
+      if (keyframes.length === 0) return;
+      keyframes.sort((a, b) => a.time - b.time);
 
+      const animationName = `${element.id}-${property}`;
+      css += `@keyframes ${animationName} {\n`;
 
-
-  const generateElementCSS = () => {
-    let css = '';
-
-    collectedElements.forEach((element) => {
-      const track = timeline.tracks.find((t) => t.elementId === element.id);
-      const hasAnimations = !!track && track.keyframes.length > 0;
-
-      css += `#${element.id} {\n`;
-      css += `  position: absolute;\n`;
-      css += `  left: ${element.x * sx}px;\n`;
-      css += `  top: ${element.y * sy}px;\n`;
-      css += `  width: ${element.width * sx}px;\n`;
-      css += `  height: ${element.height * sy}px;\n`;
-      css += `  opacity: ${element.opacity || 1};\n`;
-      css += `  transform-origin: 0 0;\n`;
-      if ((element as any).rotation) css += `  transform: rotate(${(element as any).rotation}deg);\n`;
-
-      if (element.type === 'text') {
-        const t = element as TextEl;
-        css += `  font-size: ${(t.fontSize || 16) * sy}px;\n`; // Scale font size
-        css += `  color: ${t.fill || '#000'};\n`;
-        css += `  font-family: ${t.fontFamily || 'Arial, sans-serif'};\n`;
-        css += `  display: flex; align-items: center; justify-content: center;\n`;
-        css += `  white-space: pre-wrap;\n`;
-      } else if (element.type === 'image') {
-        const i = element as ImageEl;
-        css += `  object-fit: ${i.imageFit || 'cover'};\n`;
-        css += `  object-position: center;\n`;
-        css += `  display: block;\n`;
-        // Remove the duplicate width/height lines - they're already set above
-      } else if (element.type === 'button') {
-        const b = element as ButtonEl;
-        css += `  background-color: ${b.fill || '#2563eb'};\n`;
-        css += `  color: ${b.textColor || '#fff'};\n`;
-        css += `  border: none; border-radius: ${12 * Math.min(sx, sy)}px; cursor: pointer;\n`; // Scale border radius
-        css += `  display: flex; align-items: center; justify-content: center; font-weight: 600;\n`;
-        css += `  font-size: ${14 * sy}px;\n`; // Scale button text size
-        if (b.bgType === 'image' && b.bgImageSrc) {
-          css += `  background-image: url('./${b.bgImageSrc}');\n`;
-          css += `  background-size: ${b.imageFit || 'cover'};\n`;
-          css += `  background-position: center; background-repeat: no-repeat;\n`;
-        }
+      // Add 0% keyframe with initial values
+      css += `  0% {\n`;
+      if (property === 'position') {
+        css += `    left: ${element.x * sx}px;\n`;
+        css += `    top: ${element.y * sy}px;\n`;
+      } else if (property === 'opacity') {
+        css += `    opacity: ${element.opacity || 1};\n`;
+      } else if (property === 'rotation') {
+        css += `    transform: rotate(${(element as any).rotation || 0}deg);\n`;
+      } else if (property === 'width') {
+        css += `    width: ${element.width * sx}px;\n`;
+      } else if (property === 'height') {
+        css += `    height: ${element.height * sy}px;\n`;
       }
+      css += `  }\n`;
 
-      if (hasAnimations) {
-        const animationNames: string[] = [];
-        const propertiesMap = new Map<string, any[]>();
-        track!.keyframes.forEach((kf) => {
-          if (!propertiesMap.has(kf.property)) {
-            propertiesMap.set(kf.property, []);
-            animationNames.push(`${element.id}-${kf.property}`);
-          }
-        });
+      // Add keyframes
+      keyframes.forEach((kf) => {
+        const pct = (kf.time / timeline.duration) * 100;
 
-        if (animationNames.length > 0) {
-          css += `  animation: ${animationNames.join(', ')};\n`;
-          css += `  animation-duration: ${timeline.duration}s;\n`;
-          css += `  animation-timing-function: ease-out;\n`;
-          css += `  animation-fill-mode: both;\n`;
-          if (timeline.loop) css += `  animation-iteration-count: infinite;\n`;
+        css += `  ${pct.toFixed(1)}% {\n`;
+        if (property === 'position') {
+          const pos = kf.value as { x: number; y: number };
+          css += `    left: ${pos.x * sx}px;\n`;
+          css += `    top: ${pos.y * sy}px;\n`;
+        } else if (property === 'opacity') {
+          css += `    opacity: ${kf.value};\n`;
+        } else if (property === 'rotation') {
+          css += `    transform: rotate(${kf.value}deg);\n`;
+        } else if (property === 'width') {
+          css += `    width: ${(kf.value as number) * sx}px;\n`;
+        } else if (property === 'height') {
+          css += `    height: ${(kf.value as number) * sy}px;\n`;
         }
-      }
+        css += `  }\n`;
+      });
 
       css += `}\n\n`;
     });
+  });
 
-    return css;
-  };
+  return css;
+};
 
-  const generateHTML = () => {
-    let html = '';
-    collectedElements.forEach((el) => {
-      if (el.type === 'text') {
-        const t = el as TextEl;
-        html += `    <div id="${el.id}" class="element text-element">${escapeHtml(t.text || '')}</div>\n`;
-      } else if (el.type === 'image') {
-        const i = el as ImageEl;
-        // Use <img> with src pointing to collected asset
-        html += `    <img id="${el.id}" class="element image-element" src="./${i.src}" alt="" />\n`;
-      } else if (el.type === 'button') {
-        const b = el as ButtonEl;
-        const label = escapeHtml(b.label || 'Button');
-        if (b.href) {
-          html += `    <a id="${el.id}" class="element button-element" href="${escapeHtml(b.href)}" target="_blank" rel="noopener">${label}</a>\n`;
-        } else {
-          html += `    <button id="${el.id}" class="element button-element">${label}</button>\n`;
-        }
+// Fixed generateHTML function - use consistent div approach
+const generateHTML = () => {
+  let html = '';
+  collectedElements.forEach((el) => {
+    if (el.type === 'text') {
+      const t = el as TextEl;
+      html += `    <div id="${el.id}" class="element text-element">${escapeHtml(t.text || '')}</div>\n`;
+    } else if (el.type === 'image') {
+      // Use div with background-image instead of img tag for better animation compatibility
+      html += `    <div id="${el.id}" class="element image-element"></div>\n`;
+    } else if (el.type === 'button') {
+      const b = el as ButtonEl;
+      const label = escapeHtml(b.label || 'Button');
+      if (b.href) {
+        html += `    <a id="${el.id}" class="element button-element" href="${escapeHtml(b.href)}" target="_blank" rel="noopener">${label}</a>\n`;
+      } else {
+        html += `    <button id="${el.id}" class="element button-element" type="button">${label}</button>\n`;
       }
-    });
-    return html;
-  };
+    }
+  });
+  return html;
+};
 
   const html = `<!DOCTYPE html>
 <html lang="en">
