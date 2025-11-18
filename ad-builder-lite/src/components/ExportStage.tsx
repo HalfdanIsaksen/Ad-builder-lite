@@ -1,7 +1,7 @@
 // ExportStage.tsx
 import { useEffect, useRef, useState } from 'react';
 import type { AnyEl, CanvasPreset } from '../Types';
-import { exportJSON, exportHTML5Banner, exportAnimatedHTML, exportAnimatedHTMLZip } from '../utils/exporters';
+import { exportJSON, exportHTML5Banner, exportAnimatedHTMLZip } from '../utils/exporters';
 import { useEditorStore } from '../store/useEditorStore';
 
 type ExportStageProps = {

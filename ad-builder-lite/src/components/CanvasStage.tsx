@@ -18,7 +18,7 @@ export default function CanvasStage() {
     zoom,
     setZoom,
     resetZoom,
-    zoomToFit
+    //zoomToFit
   } = useEditorStore();
 
   const size = useCanvasSize();
@@ -156,12 +156,12 @@ export default function CanvasStage() {
   }, []);
 
 
-  const handleElementClick = (elementId: string) => {
+  /*const handleElementClick = (elementId: string) => {
     if (currentTool === 'select') {
       select(elementId);
     }
     // Other tools can be implemented here later
-  };
+  };*/
   
     // Keyboard shortcuts for zoom If the other works add this
   useEffect(() => {

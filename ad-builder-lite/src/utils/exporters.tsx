@@ -1,6 +1,6 @@
 // utils/exporters.ts
 import type { AnyEl, TextEl, ImageEl, ButtonEl, CanvasPreset, TimelineState } from '../Types';
-import { getAnimatedElement } from './animation';
+//import { getAnimatedElement } from './animation';
 import { useEditorStore } from '../store/useEditorStore';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -541,7 +541,7 @@ const generateElementCSS = () => {
     css += `  box-sizing: border-box;\n`;
 
     // Handle rotation - but avoid conflicts with position animations
-    const hasPositionAnimation = hasAnimations && track!.keyframes.some(kf => kf.property === 'position');
+    //const hasPositionAnimation = hasAnimations && track!.keyframes.some(kf => kf.property === 'position');
     const hasRotationAnimation = hasAnimations && track!.keyframes.some(kf => kf.property === 'rotation');
     
     if ((element as any).rotation && !hasRotationAnimation) {
