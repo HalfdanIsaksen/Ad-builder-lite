@@ -39,14 +39,9 @@ export type RectEl = BaseEl & {
     fill?: string;
 };
 
-export type CircleEl = {
+export type CircleEl = BaseEl & {
     type: 'circle';
-    id: string;
-    x: number; y: number;
     radius: number;
-    rotation?: number;
-    opacity?: number;
-    visible?: boolean;
     fill?: string;
 }
 
