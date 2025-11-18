@@ -15,14 +15,8 @@ export type TextEl = BaseEl & {
     fill?: string;
 };
 
-export type ImageEl = {
+export type ImageEl = BaseEl & {
   type: 'image';
-  id: string;
-  x: number; y: number;
-  width: number; height: number;
-  rotation?: number;
-  opacity?: number;
-  visible?: boolean;
   src: string;
   imageFit?: 'cover' | 'contain' | 'stretch'; 
   naturalW?: number;                           
