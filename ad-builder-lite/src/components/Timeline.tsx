@@ -305,6 +305,7 @@ const Timeline: React.FC = () => {
                         {elements.map((element) => {
                             const track = timeline.tracks.find(t => t.elementId === element.id);
                             const hasTrack = !!track;
+                            const hasKeyframes = !!track && track.keyframes.length > 0;
                             const properties: AnimationProperty[] = ['position', 'width', 'height', 'rotation', 'opacity'];
 
                             return (
@@ -353,9 +354,9 @@ const Timeline: React.FC = () => {
                                                 ))}
                                             </div>
                                         ) : (
-                                            // Collapsed: add an empty spacer row so the height matches
-                                            // the `h-8` collapsed keyframe row on the right.
-                                            <div className="h-8 border-t border-gray-100" />
+                                            // Collapsed: only add spacer if there are keyframes,
+                                            // to mirror the right-hand side behaviour
+                                            hasKeyframes && <div className="h-8 border-t border-gray-100" />
                                         )
                                     )}
 
