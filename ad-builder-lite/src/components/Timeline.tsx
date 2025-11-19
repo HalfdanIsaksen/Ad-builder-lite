@@ -125,7 +125,7 @@ const Timeline: React.FC = () => {
 
         let currentValue: number | { x: number; y: number };
         switch (property) {
-            case 'position': 
+            case 'position':
                 const currentX = typeof element.x === 'number' ? element.x : 0;
                 const currentY = typeof element.y === 'number' ? element.y : 0;
                 currentValue = { x: currentX, y: currentY };
@@ -332,25 +332,33 @@ const Timeline: React.FC = () => {
                                             </button>
                                         )}
                                     </div>
-                                    {hasTrack && track!.expanded && (
-                                        <div className="text-xs text-gray-600">
-                                            {properties.map((prop) => (
-                                                <div
-                                                    key={prop}
-                                                    className="h-8 px-2 flex items-center justify-between border-t border-gray-100"
-                                                >
-                                                    <span>{prop}</span>
-                                                    <button
-                                                        onClick={() => addKeyframeAtCurrentTime(element.id, prop)}
-                                                        className="w-4 h-4 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                                                        title={`Add ${prop} keyframe`}
+                                    {hasTrack && (
+                                        track!.expanded ? (
+                                            // Expanded: show per-property rows
+                                            <div className="text-xs text-gray-600">
+                                                {properties.map((prop) => (
+                                                    <div
+                                                        key={prop}
+                                                        className="h-8 px-2 flex items-center justify-between border-t border-gray-100"
                                                     >
-                                                        +
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
+                                                        <span>{prop}</span>
+                                                        <button
+                                                            onClick={() => addKeyframeAtCurrentTime(element.id, prop)}
+                                                            className="w-4 h-4 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                                                            title={`Add ${prop} keyframe`}
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            // Collapsed: add an empty spacer row so the height matches
+                                            // the `h-8` collapsed keyframe row on the right.
+                                            <div className="h-8 border-t border-gray-100" />
+                                        )
                                     )}
+
                                 </div>
                             );
                         })}
