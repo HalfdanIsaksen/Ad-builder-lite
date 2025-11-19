@@ -21,6 +21,22 @@ const Timeline: React.FC = () => {
         toggleTrackExpansion
     } = useEditorStore();
 
+    const [groupExpanded, setGroupExpanded] = useState<Record<string, boolean>>({});
+
+    const groups = useMemo(() => {
+        const map: Record<string, { key: string; label: string; elements: AnyEl[] }> = {};
+
+        for (const el of elements) {
+            const key = el.type; // "text", "image", "button", ...
+            if (!map[key]) {
+                map[key] = { key, label: key, elements: [] };
+            }
+            map[key].elements.push(el);
+        }
+
+        return Object.values(map);
+    }, [elements]);
+
     console.log('Timeline component rendered with:', {
         elementsCount: elements.length,
         tracksCount: timeline.tracks.length,
