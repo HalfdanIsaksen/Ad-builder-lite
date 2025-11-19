@@ -1,8 +1,8 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
 import type { AnimationProperty, AnimationTrack, Keyframe } from '../Types';
 import { stopAllAnimations } from '../utils/animation';
-
+import type { AnyEl } from '../Types';
 const Timeline: React.FC = () => {
     const {
         elements,
@@ -37,6 +37,12 @@ const Timeline: React.FC = () => {
         return Object.values(map);
     }, [elements]);
 
+    const toggleGroup = (key: string) => {
+        setGroupExpanded(prev => ({
+            ...prev,
+            [key]: !prev[key],
+        }));
+    };
     console.log('Timeline component rendered with:', {
         elementsCount: elements.length,
         tracksCount: timeline.tracks.length,
