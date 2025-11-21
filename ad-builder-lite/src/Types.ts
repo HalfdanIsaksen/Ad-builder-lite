@@ -1,3 +1,5 @@
+//Element types
+
 export type ElementType = 'text' | 'image' | 'button';
 
 export type BaseEl = {
@@ -47,6 +49,22 @@ export type CircleEl = BaseEl & {
 
 export type AnyEl = TextEl | ImageEl | ButtonEl;
 
+
+// Layer group types
+
+export type LayerGroupId = string;
+
+export type LayerGroup = {
+  id: LayerGroupId;
+  name: string;
+  // optional: for “smart” groups, like “all text”
+  filterType?: 'auto-type' | 'manual';
+  elementType?: AnyEl['type']; // if filterType === 'auto-type'
+  collapsed: boolean;
+  order: number;        // for ordering in the sidebar
+};
+
+// Canvas types
 export type CanvasPreset = 'desktop' | 'tablet' | 'mobile';
 
 // Animation types
