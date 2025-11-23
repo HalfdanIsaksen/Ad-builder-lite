@@ -11,7 +11,7 @@ type State = {
     preset: CanvasPreset;
     timeline: TimelineState;
     currentTool?: Tool;
-    layerGroupds: LayerGroup[];
+    layerGroups: LayerGroup[];
     zoom: {
         scale: number;
         x: number;
@@ -227,17 +227,17 @@ export const useEditorStore = create<State & Actions>()(
 
             // Group actions
             createGroup: (name, options) => {
-                const id = nanoid();
+                const id = uid();
                 set(state => ({
-                    groups: [
-                        ...state.groups,
+                    layerGroups: [
+                        ...state.layerGroups,
                         {
                             id,
                             name,
                             filterType: options?.elementType ? 'auto-type' : 'manual',
                             elementType: options?.elementType,
                             collapsed: false,
-                            order: state.groups.length,
+                            order: state.layerGroups.length,
                         },
                     ],
                 }));
@@ -245,11 +245,11 @@ export const useEditorStore = create<State & Actions>()(
             },
 
             renameGroup: (id, name) => set(state => ({
-                groups: state.groups.map(g => g.id === id ? { ...g, name } : g),
+                layerGroups: state.layerGroups.map(g => g.id === id ? { ...g, name } : g),
             })),
 
             toggleGroupCollapsed: (id) => set(state => ({
-                groups: state.groups.map(g => g.id === id ? { ...g, collapsed: !g.collapsed } : g),
+                layerGroups: state.layerGroups.map(g => g.id === id ? { ...g, collapsed: !g.collapsed } : g),
             })),
 
             assignElementToGroup: (elementId, groupId) => set(state => ({
