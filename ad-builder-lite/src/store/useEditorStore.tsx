@@ -74,13 +74,14 @@ export const useEditorStore = create<State & Actions>()(
                 tracks: []
             },
             currentTool: 'select' as Tool,
+            layerGroups: [],
 
             zoom: {
                 scale: 1,
                 x: 0,
                 y: 0
             },
-
+            // Tool actions
             setTool: (tool: Tool) => set({ currentTool: tool }),
 
             setZoom: (scale: number, x: number = 0, y: number = 0) => {
@@ -113,6 +114,8 @@ export const useEditorStore = create<State & Actions>()(
             },
 
             setPreset: (p) => set({ preset: p }),
+
+            // Element actions
 
             addElement: (type, init) => set((s) => {
                 const common = { id: uid(), x: 40, y: 40, width: 200, height: 60, rotation: 0, opacity: 1, visible: true };
@@ -221,6 +224,39 @@ export const useEditorStore = create<State & Actions>()(
                     preset: state.preset
                 };
             },
+
+            // Group actions
+            createGroup: (name, options) => {
+                const id = nanoid();
+                set(state => ({
+                    groups: [
+                        ...state.groups,
+                        {
+                            id,
+                            name,
+                            filterType: options?.elementType ? 'auto-type' : 'manual',
+                            elementType: options?.elementType,
+                            collapsed: false,
+                            order: state.groups.length,
+                        },
+                    ],
+                }));
+                return id;
+            },
+
+            renameGroup: (id, name) => set(state => ({
+                groups: state.groups.map(g => g.id === id ? { ...g, name } : g),
+            })),
+
+            toggleGroupCollapsed: (id) => set(state => ({
+                groups: state.groups.map(g => g.id === id ? { ...g, collapsed: !g.collapsed } : g),
+            })),
+
+            assignElementToGroup: (elementId, groupId) => set(state => ({
+                elements: state.elements.map(el =>
+                    el.id === elementId ? { ...el, groupId } : el
+                ),
+            })),
 
             // Timeline actions
             playTimeline: () => set((s) => ({
