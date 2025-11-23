@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty, Tool } from '../Types';
+import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty, Tool, LayerGroup, LayerGroupId } from '../Types';
 import { fileToDataURL } from '../utils/files';
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
@@ -11,6 +11,7 @@ type State = {
     preset: CanvasPreset;
     timeline: TimelineState;
     currentTool?: Tool;
+    layerGroupds: LayerGroup[];
     zoom: {
         scale: number;
         x: number;
@@ -50,6 +51,12 @@ type Actions = {
     toggleTrackVisibility: (trackId: string) => void;
     toggleTrackLock: (trackId: string) => void;
     toggleTrackExpansion: (trackId: string) => void;
+
+    //group actions
+    createGroup: (name: string, options?: { elementType?: AnyEl['type'] }) => LayerGroupId;
+    renameGroup: (id: LayerGroupId, name: string) => void;
+    toggleGroupCollapsed: (id: LayerGroupId) => void;
+    assignElementToGroup: (elementId: string, groupId: LayerGroupId | null) => void;
 };
 
 export const useEditorStore = create<State & Actions>()(
