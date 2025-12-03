@@ -257,7 +257,36 @@ export const useEditorStore = create<State & Actions>()(
                     el.id === elementId ? { ...el, groupId } : el
                 ),
             })),
+            
+            deleteGroup: (id, options) =>
+                set(state => {
+                    const ungroupElements = options?.ungroupElements ?? true;
 
+                    return {
+                        groups: state.layerGroups.filter(g => g.id !== id),
+                        elements: state.elements.map(el =>
+                            el.layerGroupId === id
+                                ? { ...el, layerGroupId: ungroupElements ? null : el.layerGroupId }
+                                : el
+                        ),
+                    };
+                }),
+
+            reorderLayer: (id, kind, newOrder) =>
+                set(state => {
+                    if (kind === 'group') {
+                        return {
+                            layerGroups: state.layerGroups.map(g =>
+                                g.id === id ? { ...g, order: newOrder } : g
+                            ),
+                        };
+                    }
+                    return {
+                        elements: state.elements.map(el =>
+                            el.id === id ? { ...el, layerOrder: newOrder } : el
+                        ),
+                    };
+                }),
             // Timeline actions
             playTimeline: () => set((s) => ({
                 timeline: { ...s.timeline, isPlaying: true }
