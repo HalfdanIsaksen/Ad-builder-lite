@@ -48,12 +48,9 @@ export type CircleEl = BaseEl & {
 }
 
 //export type AnyEl = TextEl | ImageEl | ButtonEl;
-export type AnyEl = {
-  id: string;
-  type: 'text' | 'image' | 'button' | string;
-  // ... existing fields (x, y, width, height, etc.)
-  layerGroupId: LayerGroupId | null; // <— which group this element belongs to
-  layerOrder: number;      // <— vertical order inside the timeline
+export type AnyEl = (TextEl | ImageEl | ButtonEl) & {
+  layerGroupId?: LayerGroupId | null; 
+  layerOrder?: number;                
 };
 
 // Layer group types
