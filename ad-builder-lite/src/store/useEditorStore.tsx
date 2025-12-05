@@ -57,6 +57,8 @@ type Actions = {
     renameGroup: (id: LayerGroupId, name: string) => void;
     toggleGroupCollapsed: (id: LayerGroupId) => void;
     assignElementToGroup: (elementId: string, groupId: LayerGroupId | null) => void;
+    deleteGroup: (id: LayerGroupId, options?: { ungroupElements?: boolean }) => void;
+    reorderLayer: (args: { id: string; kind: 'group' | 'element'; newOrder: number }) => void;
 };
 
 export const useEditorStore = create<State & Actions>()(
@@ -257,7 +259,7 @@ export const useEditorStore = create<State & Actions>()(
                     el.id === elementId ? { ...el, groupId } : el
                 ),
             })),
-            
+
             deleteGroup: (id, options) =>
                 set(state => {
                     const ungroupElements = options?.ungroupElements ?? true;
@@ -272,7 +274,7 @@ export const useEditorStore = create<State & Actions>()(
                     };
                 }),
 
-            reorderLayer: (id, kind, newOrder) =>
+            reorderLayer: ({id, kind, newOrder}) =>
                 set(state => {
                     if (kind === 'group') {
                         return {
