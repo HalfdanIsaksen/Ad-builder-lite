@@ -119,18 +119,65 @@ export const useEditorStore = create<State & Actions>()(
 
             // Element actions
 
-            addElement: (type, init) => set((s) => {
-                const common = { id: uid(), x: 40, y: 40, width: 200, height: 60, rotation: 0, opacity: 1, visible: true };
-                let el: AnyEl;
-                if (type === 'text') {
-                    el = { ...common, type: 'text', text: 'New text', fontSize: 28, fill: '#111' } as AnyEl;
-                } else if (type === 'image') {
-                    el = { ...common, type: 'image', src: 'https://picsum.photos/400/240' } as AnyEl;
-                } else {
-                    el = { ...common, type: 'button', label: 'Click me', fill: '#2563eb', textColor: '#fff', width: 160, height: 48, bgType: 'solid', imageFit: 'cover', } as AnyEl;
-                }
-                return { elements: [...s.elements, { ...el, ...(init as any) }], selectedId: (el as AnyEl).id };
-            }),
+            addElement: (type, init) =>
+                set((s) => {
+                    // Base fields, including grouping metadata
+                    const common = {
+                        id: uid(),
+                        x: 40,
+                        y: 40,
+                        width: 200,
+                        height: 60,
+                        rotation: 0,
+                        opacity: 1,
+                        visible: true,
+                        layerGroupId: null as LayerGroupId | null,
+                        layerOrder: s.elements.length, // put new element at bottom
+                    };
+
+                    let el: AnyEl;
+
+                    if (type === 'text') {
+                        el = {
+                            ...common,
+                            type: 'text',
+                            text: 'New text',
+                            fontSize: 28,
+                            fill: '#111',
+                        } as AnyEl;
+                    } else if (type === 'image') {
+                        el = {
+                            ...common,
+                            type: 'image',
+                            src: 'https://picsum.photos/400/240',
+                        } as AnyEl;
+                    } else {
+                        // button
+                        el = {
+                            ...common,
+                            type: 'button',
+                            label: 'Click me',
+                            fill: '#2563eb',
+                            textColor: '#fff',
+                            width: 160,
+                            height: 48,
+                            bgType: 'solid',
+                            imageFit: 'cover',
+                        } as AnyEl;
+                    }
+
+                    const newElement = {
+                        ...el,
+                        ...(init as Partial<AnyEl>),
+                    } as AnyEl;
+
+                    return {
+                        elements: [...s.elements, newElement] as AnyEl[],
+                        selectedId: el.id,
+                    } as Partial<State & Actions>;
+                }),
+
+
             addImageFromFile: async (file) => {
                 const dataUrl = await fileToDataURL(file);
                 const img = new Image();
@@ -254,18 +301,20 @@ export const useEditorStore = create<State & Actions>()(
                 layerGroups: state.layerGroups.map(g => g.id === id ? { ...g, collapsed: !g.collapsed } : g),
             })),
 
-            assignElementToGroup: (elementId, groupId) => set(state => ({
-                elements: state.elements.map(el =>
-                    el.id === elementId ? { ...el, groupId } : el
-                ),
-            })),
+            assignElementToGroup: (elementId, groupId) =>
+                set(state => ({
+                    elements: state.elements.map(el =>
+                        el.id === elementId ? { ...el, layerGroupId: groupId } : el
+                    ),
+                })),
+
 
             deleteGroup: (id, options) =>
                 set(state => {
                     const ungroupElements = options?.ungroupElements ?? true;
 
                     return {
-                        groups: state.layerGroups.filter(g => g.id !== id),
+                        layerGroups: state.layerGroups.filter(g => g.id !== id),
                         elements: state.elements.map(el =>
                             el.layerGroupId === id
                                 ? { ...el, layerGroupId: ungroupElements ? null : el.layerGroupId }
@@ -274,7 +323,7 @@ export const useEditorStore = create<State & Actions>()(
                     };
                 }),
 
-            reorderLayer: ({id, kind, newOrder}) =>
+            reorderLayer: ({ id, kind, newOrder }) =>
                 set(state => {
                     if (kind === 'group') {
                         return {
