@@ -22,6 +22,7 @@ const Timeline: React.FC = () => {
         toggleTrackExpansion,
         toggleGroupCollapsed,
         createGroup,
+        assignElementToGroup,
     } = useEditorStore();
 
     console.log('Timeline component rendered with:', {
@@ -283,18 +284,42 @@ const Timeline: React.FC = () => {
     };
 
     // A single row on the LEFT side for an element (label + property buttons)
-    const renderLayerRow = (element: AnyEl, track: AnimationTrack | undefined, indent: boolean = false) => {
+    // A single row on the LEFT side for an element (label + property buttons)
+    const renderLayerRow = (
+        element: AnyEl,
+        track: AnimationTrack | undefined,
+        indent: boolean = false
+    ) => {
         const hasTrack = !!track;
         const hasKeyframes = !!track && track.keyframes.length > 0;
         const properties: AnimationProperty[] = ['position', 'width', 'height', 'rotation', 'opacity'];
+        const currentGroupId = (element as any).layerGroupId ?? '';
 
         return (
             <div key={element.id} className={`border-b border-gray-200 ${indent ? 'ml-3' : ''}`}>
-                <div className="h-10 flex items-center px-2 justify-between">
+                <div className="h-10 flex items-center px-2 justify-between gap-1">
                     <span className="text-sm truncate" title={element.type}>
                         {element.type}
                     </span>
 
+                    {/* Group selector */}
+                    <select
+                        className="text-[11px] border rounded px-1 max-w-[80px]"
+                        value={currentGroupId}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            assignElementToGroup(element.id, value === '' ? null : value);
+                        }}
+                    >
+                        <option value="">No group</option>
+                        {layerGroups.map((g) => (
+                            <option key={g.id} value={g.id}>
+                                {g.name}
+                            </option>
+                        ))}
+                    </select>
+
+                    {/* Track create / expand button */}
                     {!hasTrack ? (
                         <button
                             onClick={() => createTrackForElement(element.id)}
@@ -339,6 +364,7 @@ const Timeline: React.FC = () => {
             </div>
         );
     };
+
 
     // When an element has no track, we still render a blank row on the right so things line up
     const renderEmptyTrackRow = (key: string) => (
