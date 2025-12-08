@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty, Tool } from '../Types';
+import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty, Tool, LayerGroup, LayerGroupId } from '../Types';
 import { fileToDataURL } from '../utils/files';
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
@@ -11,6 +11,7 @@ type State = {
     preset: CanvasPreset;
     timeline: TimelineState;
     currentTool?: Tool;
+    layerGroups: LayerGroup[];
     zoom: {
         scale: number;
         x: number;
@@ -50,6 +51,14 @@ type Actions = {
     toggleTrackVisibility: (trackId: string) => void;
     toggleTrackLock: (trackId: string) => void;
     toggleTrackExpansion: (trackId: string) => void;
+
+    //group actions
+    createGroup: (name: string, options?: { elementType?: AnyEl['type'] }) => LayerGroupId;
+    renameGroup: (id: LayerGroupId, name: string) => void;
+    toggleGroupCollapsed: (id: LayerGroupId) => void;
+    assignElementToGroup: (elementId: string, groupId: LayerGroupId | null) => void;
+    deleteGroup: (id: LayerGroupId, options?: { ungroupElements?: boolean }) => void;
+    reorderLayer: (args: { id: string; kind: 'group' | 'element'; newOrder: number }) => void;
 };
 
 export const useEditorStore = create<State & Actions>()(
@@ -67,13 +76,14 @@ export const useEditorStore = create<State & Actions>()(
                 tracks: []
             },
             currentTool: 'select' as Tool,
+            layerGroups: [],
 
             zoom: {
                 scale: 1,
                 x: 0,
                 y: 0
             },
-
+            // Tool actions
             setTool: (tool: Tool) => set({ currentTool: tool }),
 
             setZoom: (scale: number, x: number = 0, y: number = 0) => {
@@ -107,18 +117,67 @@ export const useEditorStore = create<State & Actions>()(
 
             setPreset: (p) => set({ preset: p }),
 
-            addElement: (type, init) => set((s) => {
-                const common = { id: uid(), x: 40, y: 40, width: 200, height: 60, rotation: 0, opacity: 1, visible: true };
-                let el: AnyEl;
-                if (type === 'text') {
-                    el = { ...common, type: 'text', text: 'New text', fontSize: 28, fill: '#111' } as AnyEl;
-                } else if (type === 'image') {
-                    el = { ...common, type: 'image', src: 'https://picsum.photos/400/240' } as AnyEl;
-                } else {
-                    el = { ...common, type: 'button', label: 'Click me', fill: '#2563eb', textColor: '#fff', width: 160, height: 48, bgType: 'solid', imageFit: 'cover', } as AnyEl;
-                }
-                return { elements: [...s.elements, { ...el, ...(init as any) }], selectedId: (el as AnyEl).id };
-            }),
+            // Element actions
+
+            addElement: (type, init) =>
+                set((s) => {
+                    // Base fields, including grouping metadata
+                    const common = {
+                        id: uid(),
+                        x: 40,
+                        y: 40,
+                        width: 200,
+                        height: 60,
+                        rotation: 0,
+                        opacity: 1,
+                        visible: true,
+                        layerGroupId: null as LayerGroupId | null,
+                        layerOrder: s.elements.length, // put new element at bottom
+                    };
+
+                    let el: AnyEl;
+
+                    if (type === 'text') {
+                        el = {
+                            ...common,
+                            type: 'text',
+                            text: 'New text',
+                            fontSize: 28,
+                            fill: '#111',
+                        } as AnyEl;
+                    } else if (type === 'image') {
+                        el = {
+                            ...common,
+                            type: 'image',
+                            src: 'https://picsum.photos/400/240',
+                        } as AnyEl;
+                    } else {
+                        // button
+                        el = {
+                            ...common,
+                            type: 'button',
+                            label: 'Click me',
+                            fill: '#2563eb',
+                            textColor: '#fff',
+                            width: 160,
+                            height: 48,
+                            bgType: 'solid',
+                            imageFit: 'cover',
+                        } as AnyEl;
+                    }
+
+                    const newElement = {
+                        ...el,
+                        ...(init as Partial<AnyEl>),
+                    } as AnyEl;
+
+                    return {
+                        elements: [...s.elements, newElement] as AnyEl[],
+                        selectedId: el.id,
+                    } as Partial<State & Actions>;
+                }),
+
+
             addImageFromFile: async (file) => {
                 const dataUrl = await fileToDataURL(file);
                 const img = new Image();
@@ -215,6 +274,70 @@ export const useEditorStore = create<State & Actions>()(
                 };
             },
 
+            // Group actions
+            createGroup: (name, options) => {
+                const id = uid();
+                set(state => ({
+                    layerGroups: [
+                        ...state.layerGroups,
+                        {
+                            id,
+                            name,
+                            filterType: options?.elementType ? 'auto-type' : 'manual',
+                            elementType: options?.elementType,
+                            collapsed: false,
+                            order: state.layerGroups.length,
+                        },
+                    ],
+                }));
+                return id;
+            },
+
+            renameGroup: (id, name) => set(state => ({
+                layerGroups: state.layerGroups.map(g => g.id === id ? { ...g, name } : g),
+            })),
+
+            toggleGroupCollapsed: (id) => set(state => ({
+                layerGroups: state.layerGroups.map(g => g.id === id ? { ...g, collapsed: !g.collapsed } : g),
+            })),
+
+            assignElementToGroup: (elementId, groupId) =>
+                set(state => ({
+                    elements: state.elements.map(el =>
+                        el.id === elementId ? { ...el, layerGroupId: groupId } : el
+                    ),
+                })),
+
+
+            deleteGroup: (id, options) =>
+                set(state => {
+                    const ungroupElements = options?.ungroupElements ?? true;
+
+                    return {
+                        layerGroups: state.layerGroups.filter(g => g.id !== id),
+                        elements: state.elements.map(el =>
+                            el.layerGroupId === id
+                                ? { ...el, layerGroupId: ungroupElements ? null : el.layerGroupId }
+                                : el
+                        ),
+                    };
+                }),
+
+            reorderLayer: ({ id, kind, newOrder }) =>
+                set(state => {
+                    if (kind === 'group') {
+                        return {
+                            layerGroups: state.layerGroups.map(g =>
+                                g.id === id ? { ...g, order: newOrder } : g
+                            ),
+                        };
+                    }
+                    return {
+                        elements: state.elements.map(el =>
+                            el.id === id ? { ...el, layerOrder: newOrder } : el
+                        ),
+                    };
+                }),
             // Timeline actions
             playTimeline: () => set((s) => ({
                 timeline: { ...s.timeline, isPlaying: true }

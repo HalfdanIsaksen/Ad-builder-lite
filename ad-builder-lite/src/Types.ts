@@ -1,52 +1,75 @@
+//Element types
+
 export type ElementType = 'text' | 'image' | 'button';
 
 export type BaseEl = {
-    id: string;
-    type: ElementType;
-    x: number; y: number; width: number; height: number; rotation?: number;
-    opacity?: number; visible?: boolean;
+  id: string;
+  type: ElementType;
+  x: number; y: number; width: number; height: number; rotation?: number;
+  opacity?: number; visible?: boolean;
+
+  layerGroupId?: LayerGroupId | null;
+  layerOrder?: number;
 };
 
 export type TextEl = BaseEl & {
-    type: 'text';
-    text: string;
-    fontSize: number;
-    fontFamily?: string;
-    fill?: string;
+  type: 'text';
+  text: string;
+  fontSize: number;
+  fontFamily?: string;
+  fill?: string;
 };
 
 export type ImageEl = BaseEl & {
   type: 'image';
   src: string;
-  imageFit?: 'cover' | 'contain' | 'stretch'; 
-  naturalW?: number;                           
-  naturalH?: number;                           
+  imageFit?: 'cover' | 'contain' | 'stretch';
+  naturalW?: number;
+  naturalH?: number;
 };
 
 export type ButtonEl = BaseEl & {
-    type: 'button';
-    label: string;
-    href?: string;
-    fill?: string;
-    textColor?: string;
-    bgType?: 'solid' | 'image';
-    bgImageSrc?: string;   // used when bgType === 'image'
-    imageFit?: 'cover' | 'contain' | 'stretch';
+  type: 'button';
+  label: string;
+  href?: string;
+  fill?: string;
+  textColor?: string;
+  bgType?: 'solid' | 'image';
+  bgImageSrc?: string;   // used when bgType === 'image'
+  imageFit?: 'cover' | 'contain' | 'stretch';
 };
 
 export type RectEl = BaseEl & {
-    type: 'rect';
-    fill?: string;
+  type: 'rect';
+  fill?: string;
 };
 
 export type CircleEl = BaseEl & {
-    type: 'circle';
-    radius: number;
-    fill?: string;
+  type: 'circle';
+  radius: number;
+  fill?: string;
 }
-
 export type AnyEl = TextEl | ImageEl | ButtonEl;
+/*export type AnyEl = (TextEl | ImageEl | ButtonEl) & {
+  layerGroupId?: LayerGroupId | null; 
+  layerOrder?: number;                
+};*/
 
+// Layer group types
+
+export type LayerGroupId = string;
+
+export type LayerGroup = {
+  id: LayerGroupId;
+  name: string;
+  // optional: for “smart” groups, like “all text”
+  filterType?: 'auto-type' | 'manual';
+  elementType?: AnyEl['type']; // if filterType === 'auto-type'
+  collapsed: boolean;
+  order: number;        // for ordering in the sidebar
+};
+
+// Canvas types
 export type CanvasPreset = 'desktop' | 'tablet' | 'mobile';
 
 // Animation types
