@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
-import type { AnimationProperty, AnimationTrack, Keyframe, AnyEl, LayerGroup } from '../Types';
+import type { AnimationProperty, AnimationTrack, Keyframe, AnyEl, } from '../Types';
 import { stopAllAnimations } from '../utils/animation';
 
 const Timeline: React.FC = () => {
