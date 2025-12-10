@@ -76,6 +76,7 @@ const Timeline: React.FC = () => {
     }, [elements]);
 
     const ungroupedElements = elementsByGroup.get(null) ?? [];
+    const [groupIdToDelete, setGroupIdToDelete] = useState<string>('');
 
     // --- PLAYBACK / SCRUBBER LOGIC ---
 
@@ -286,7 +287,6 @@ const Timeline: React.FC = () => {
     };
 
     // A single row on the LEFT side for an element (label + property buttons)
-    // A single row on the LEFT side for an element (label + property buttons)
     const renderLayerRow = (
         element: AnyEl,
         track: AnimationTrack | undefined,
@@ -444,15 +444,26 @@ const Timeline: React.FC = () => {
                 >
                     + Group
                 </button>
+                {/* Group delete selector */}
+                <select
+                    className="px-2 py-1 text-xs bg-gray-100 border rounded"
+                    value={groupIdToDelete}
+                    onChange={(e) => setGroupIdToDelete(e.target.value)}
+                >
+                    <option value="">Select group…</option>
+                    {layerGroups.map((group) => (
+                        <option key={group.id} value={group.id}>
+                            {group.name}
+                        </option>
+                    ))}
+                </select>
+
                 <button
                     onClick={() => {
-                        //deleteGroup(layerGroups[layerGroups.length - 1]?.id);
-                        const groupIdToDelete = <select
-                            onChange={(e) => deleteGroup(e.target.value)}
+                        if (!groupIdToDelete) return; // nothing selected
 
-                        >
-                        </select>
                         deleteGroup(groupIdToDelete);
+                        setGroupIdToDelete(''); // reset after delete
                     }}
                     className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
                 >
@@ -492,9 +503,16 @@ const Timeline: React.FC = () => {
                                         <button
                                             onClick={() => {
                                                 renameGroup(group.id, prompt('New group name:', group.name) || group.name)
-                                            }}className="px-2 py-1 text-xs"
+                                            }} className="px-2 py-1 text-xs"
                                         >
-                                             ✏️
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                deleteGroup(group.id);
+                                            }} className="px-2 py-1 text-xs"
+                                        >
+                                            🗑️
                                         </button>
                                     </div>
 
