@@ -23,6 +23,7 @@ const Timeline: React.FC = () => {
         toggleGroupCollapsed,
         createGroup,
         assignElementToGroup,
+        deleteGroup,
     } = useEditorStore();
 
     console.log('Timeline component rendered with:', {
@@ -441,6 +442,14 @@ const Timeline: React.FC = () => {
                     className="ml-4 px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
                 >
                     + Group
+                </button>
+                <button
+                    onClick={() => {
+                        deleteGroup(layerGroups[layerGroups.length - 1]?.id);
+                    }}
+                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                >
+                    Delete group
                 </button>
             </div>
 
