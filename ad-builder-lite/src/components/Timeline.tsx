@@ -438,7 +438,7 @@ const Timeline: React.FC = () => {
                     onClick={() => {
                         // simple default name; you can swap this for a prompt() if you like
                         const defaultName = `Group ${layerGroups.length + 1}`;
-                        createGroup(defaultName);
+                        createGroup(prompt('New group name:', '') || defaultName);
                     }}
                     className="ml-4 px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
                 >
@@ -485,10 +485,10 @@ const Timeline: React.FC = () => {
                                         <span className="text-xs font-semibold truncate">{group.name}</span>
                                         <button
                                             onClick={() => {
-                                                renameGroup(group.id, prompt('New group name:', group.name) || group.name
-                                            }}
+                                                renameGroup(group.id, prompt('New group name:', group.name) || group.name)
+                                            }}className="px-2 py-1 text-xs"
                                         >
-                                            I
+                                             ✏️
                                         </button>
                                     </div>
 
