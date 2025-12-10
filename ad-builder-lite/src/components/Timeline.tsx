@@ -446,7 +446,13 @@ const Timeline: React.FC = () => {
                 </button>
                 <button
                     onClick={() => {
-                        deleteGroup(layerGroups[layerGroups.length - 1]?.id);
+                        //deleteGroup(layerGroups[layerGroups.length - 1]?.id);
+                        const groupIdToDelete = <select
+                            onChange={(e) => deleteGroup(e.target.value)}
+
+                        >
+                        </select>
+                        deleteGroup(groupIdToDelete);
                     }}
                     className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
                 >
