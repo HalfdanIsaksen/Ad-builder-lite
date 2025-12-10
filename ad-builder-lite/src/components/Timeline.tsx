@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
-import type { AnimationProperty, AnimationTrack, Keyframe, AnyEl, LayerGroup } from '../Types';
+import type { AnimationProperty, AnimationTrack, Keyframe, AnyEl, } from '../Types';
 import { stopAllAnimations } from '../utils/animation';
 
 const Timeline: React.FC = () => {
@@ -23,6 +23,8 @@ const Timeline: React.FC = () => {
         toggleGroupCollapsed,
         createGroup,
         assignElementToGroup,
+        deleteGroup,
+        renameGroup,
     } = useEditorStore();
 
     console.log('Timeline component rendered with:', {
@@ -74,6 +76,7 @@ const Timeline: React.FC = () => {
     }, [elements]);
 
     const ungroupedElements = elementsByGroup.get(null) ?? [];
+    const [groupIdToDelete, setGroupIdToDelete] = useState<string>('');
 
     // --- PLAYBACK / SCRUBBER LOGIC ---
 
@@ -284,7 +287,6 @@ const Timeline: React.FC = () => {
     };
 
     // A single row on the LEFT side for an element (label + property buttons)
-    // A single row on the LEFT side for an element (label + property buttons)
     const renderLayerRow = (
         element: AnyEl,
         track: AnimationTrack | undefined,
@@ -436,11 +438,36 @@ const Timeline: React.FC = () => {
                     onClick={() => {
                         // simple default name; you can swap this for a prompt() if you like
                         const defaultName = `Group ${layerGroups.length + 1}`;
-                        createGroup(defaultName);
+                        createGroup(prompt('New group name:', '') || defaultName);
                     }}
                     className="ml-4 px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
                 >
                     + Group
+                </button>
+                {/* Group delete selector */}
+                <select
+                    className="px-2 py-1 text-xs bg-gray-100 border rounded"
+                    value={groupIdToDelete}
+                    onChange={(e) => setGroupIdToDelete(e.target.value)}
+                >
+                    <option value="">Select group…</option>
+                    {layerGroups.map((group) => (
+                        <option key={group.id} value={group.id}>
+                            {group.name}
+                        </option>
+                    ))}
+                </select>
+
+                <button
+                    onClick={() => {
+                        if (!groupIdToDelete) return; // nothing selected
+
+                        deleteGroup(groupIdToDelete);
+                        setGroupIdToDelete(''); // reset after delete
+                    }}
+                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                >
+                    Delete group
                 </button>
             </div>
 
@@ -473,6 +500,20 @@ const Timeline: React.FC = () => {
                                     >
                                         <span className="text-xs mr-1">{group.collapsed ? '▸' : '▾'}</span>
                                         <span className="text-xs font-semibold truncate">{group.name}</span>
+                                        <button
+                                            onClick={() => {
+                                                renameGroup(group.id, prompt('New group name:', group.name) || group.name)
+                                            }} className="px-2 py-1 text-xs"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                deleteGroup(group.id);
+                                            }} className="px-2 py-1 text-xs"
+                                        >
+                                            🗑️
+                                        </button>
                                     </div>
 
                                     {/* Elements inside group */}
