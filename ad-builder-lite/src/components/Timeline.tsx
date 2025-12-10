@@ -24,6 +24,7 @@ const Timeline: React.FC = () => {
         createGroup,
         assignElementToGroup,
         deleteGroup,
+        renameGroup,
     } = useEditorStore();
 
     console.log('Timeline component rendered with:', {
@@ -482,6 +483,13 @@ const Timeline: React.FC = () => {
                                     >
                                         <span className="text-xs mr-1">{group.collapsed ? '▸' : '▾'}</span>
                                         <span className="text-xs font-semibold truncate">{group.name}</span>
+                                        <button
+                                            onClick={() => {
+                                                renameGroup(group.id, prompt('New group name:', group.name) || group.name
+                                            }}
+                                        >
+                                            I
+                                        </button>
                                     </div>
 
                                     {/* Elements inside group */}
