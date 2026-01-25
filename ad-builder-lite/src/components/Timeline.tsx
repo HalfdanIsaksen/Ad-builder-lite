@@ -306,7 +306,7 @@ const Timeline: React.FC = () => {
 
                     {/* Group selector */}
                     <select
-                        className="text-[11px] border rounded px-1 max-w-[80px]"
+                        className="text-[11px] border rounded px-1 max-w-20"
                         value={currentGroupId}
                         onChange={(e) => {
                             const value = e.target.value;
