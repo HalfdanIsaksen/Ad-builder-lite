@@ -2,6 +2,18 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
 import type { AnimationProperty, AnimationTrack, Keyframe, AnyEl, } from '../Types';
 import { stopAllAnimations } from '../utils/animation';
+import {
+    ChevronDown,
+    ChevronRight,
+    Ellipsis,
+    Minus,
+    Pause,
+    Pencil,
+    Play,
+    Plus,
+    SkipBack,
+    Trash2,
+} from 'lucide-react';
 
 const Timeline: React.FC = () => {
     const {
@@ -237,7 +249,7 @@ const Timeline: React.FC = () => {
                         onClick={() => toggleTrackExpansion(track.id)}
                         className="flex items-center flex-1 text-left hover:bg-gray-100 rounded px-1 -mx-1"
                     >
-                        <span className={`text-xs mr-2 transition-transform ${track.expanded ? 'rotate-90' : ''}`}>▶</span>
+                        <ChevronRight className={`h-3 w-3 mr-2 transition-transform ${track.expanded ? 'rotate-90' : ''}`} />
                         <span className="text-sm font-medium truncate" title={`${element.type} #${element.id.slice(0, 4)}`}>
                             {element.type} #{element.id.slice(0, 4)}
                         </span>
@@ -328,7 +340,7 @@ const Timeline: React.FC = () => {
                             className="text-xs bg-green-500 text-white px-1 rounded hover:bg-green-600"
                             title="Create animation track"
                         >
-                            +
+                            <Plus className="h-3 w-3" />
                         </button>
                     ) : (
                         <button
@@ -336,7 +348,7 @@ const Timeline: React.FC = () => {
                             className="text-xs bg-gray-200 px-1 rounded hover:bg-gray-300"
                             title="Expand / collapse properties"
                         >
-                            {track!.expanded ? '–' : '⋯'}
+                            {track!.expanded ? <Minus className="h-3 w-3" /> : <Ellipsis className="h-3 w-3" />}
                         </button>
                     )}
                 </div>
@@ -355,7 +367,7 @@ const Timeline: React.FC = () => {
                                         className="w-4 h-4 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
                                         title={`Add ${prop} keyframe`}
                                     >
-                                        +
+                                        <Plus className="h-3 w-3" />
                                     </button>
                                 </div>
                             ))}
@@ -389,14 +401,14 @@ const Timeline: React.FC = () => {
                     }}
                     className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
                 >
-                    {timeline.isPlaying ? '⏸️' : '▶️'}
+                    {timeline.isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </button>
 
                 <button
                     onClick={() => setTimelineTime(0)}
                     className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
                 >
-                    ⏮️
+                    <SkipBack className="h-4 w-4" />
                 </button>
 
                 <div className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
@@ -498,21 +510,21 @@ const Timeline: React.FC = () => {
                                         className="h-8 flex items-center px-2 bg-gray-100 cursor-pointer"
                                         onClick={() => toggleGroupCollapsed(group.id)}
                                     >
-                                        <span className="text-xs mr-1">{group.collapsed ? '▸' : '▾'}</span>
+                                        {group.collapsed ? <ChevronRight className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
                                         <span className="text-xs font-semibold truncate">{group.name}</span>
                                         <button
                                             onClick={() => {
                                                 renameGroup(group.id, prompt('New group name:', group.name) || group.name)
                                             }} className="px-2 py-1 text-xs"
                                         >
-                                            ✏️
+                                            <Pencil className="h-3 w-3" />
                                         </button>
                                         <button
                                             onClick={() => {
                                                 deleteGroup(group.id);
                                             }} className="px-2 py-1 text-xs"
                                         >
-                                            🗑️
+                                            <Trash2 className="h-3 w-3" />
                                         </button>
                                     </div>
 

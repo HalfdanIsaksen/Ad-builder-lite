@@ -1,4 +1,5 @@
 import { useEditorStore } from '../store/useEditorStore';
+import { MousePointer2, Type, Search, RotateCcw } from 'lucide-react';
 
 export default function Sidebar() {
     const { addElement, currentTool, setTool, resetZoom } = useEditorStore();
@@ -13,19 +14,19 @@ export default function Sidebar() {
                         className={`btn ${currentTool === 'select' ? 'bg-blue-500 text-white' : ''}`}
                         onClick={() => setTool('select')}
                     >
-                        <span className="mr-2">↖</span> Select
+                        <MousePointer2 className="mr-2 h-4 w-4" /> Select
                     </button>
                     <button 
                         className={`btn ${currentTool === 'draw-text' ? 'bg-blue-500 text-white' : ''}`}
                         onClick={() => setTool('draw-text')}
                     >
-                        <span className="mr-2">T</span> Text Tool
+                        <Type className="mr-2 h-4 w-4" /> Text Tool
                     </button>
                     <button 
                         className={`btn ${currentTool === 'zoom' ? 'bg-blue-500 text-white' : ''}`}
                         onClick={() => setTool('zoom')}
                     >
-                        <span className="mr-2">🔍</span> Zoom
+                        <Search className="mr-2 h-4 w-4" /> Zoom
                     </button>
                     
                     {/* Zoom controls - only show when zoom tool is active */}
@@ -34,7 +35,7 @@ export default function Sidebar() {
                             className="btn bg-gray-100 text-sm"
                             onClick={resetZoom}
                         >
-                            Reset Zoom
+                            <RotateCcw className="mr-2 h-4 w-4" /> Reset Zoom
                         </button>
                     )}
                 </div>
