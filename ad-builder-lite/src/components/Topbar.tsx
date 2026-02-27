@@ -7,9 +7,9 @@ import { Card } from '@/components/ui/card';
 import type { CanvasPreset } from '../Types';
 
 const sizes: Record<CanvasPreset, { label: string }> = {
-  desktop: { label: 'Desktop 970×250' },
-  tablet: { label: 'Tablet 728×90' },
-  mobile: { label: 'Mobile 320×100' },
+  desktop: { label: 'Desktop' },
+  tablet: { label: 'Tablet' },
+  mobile: { label: 'Mobile' },
 };
 
 export default function Topbar() {
