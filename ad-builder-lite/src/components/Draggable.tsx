@@ -36,6 +36,11 @@ export default function Draggable({
     ? el  // Use base element, Konva will animate the actual node
     : getAnimatedElement(el, timeline.currentTime, timeline.tracks); // Manual interpolation for scrubbing
 
+  const imageEl = el.type === 'image' ? (animatedEl as ImageEl) : null;
+  const buttonEl = el.type === 'button' ? (animatedEl as ButtonEl) : null;
+  const [loadedImage] = useImage(imageEl?.src ?? '', 'anonymous');
+  const [loadedButtonBgImage] = useImage(buttonEl?.bgImageSrc || '', 'anonymous');
+
   const nodeRef = useRef<any>(null);
 
   useEffect(() => {
@@ -185,7 +190,7 @@ export default function Draggable({
 
   if (el.type === 'image') {
     const i = animatedEl as ImageEl;
-    const [img] = useImage(i.src, 'anonymous');
+    const img = loadedImage;
 
     const frameRef = nodeRef;
 
@@ -231,7 +236,7 @@ export default function Draggable({
 
   if (el.type === 'button') {
     const b = animatedEl as ButtonEl;
-    const [bgImg] = useImage(b.bgImageSrc || '', 'anonymous');
+    const bgImg = loadedButtonBgImage;
 
     const radius = 12;
     const clipRounded = (ctx: any) => {

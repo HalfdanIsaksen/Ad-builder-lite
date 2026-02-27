@@ -365,7 +365,7 @@ export const useEditorStore = create<State & Actions>()(
 
             addKeyframe: (elementId, property, time, value: number | { x: number; y: number }) => set((s) => {
                 const trackIndex = s.timeline.tracks.findIndex(t => t.elementId === elementId);
-                let tracks = [...s.timeline.tracks];
+                const tracks = [...s.timeline.tracks];
 
                 const keyframe: Keyframe = {
                     id: uid(),
