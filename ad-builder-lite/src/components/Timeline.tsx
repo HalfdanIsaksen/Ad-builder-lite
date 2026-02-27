@@ -2,6 +2,22 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
 import type { AnimationProperty, AnimationTrack, Keyframe, AnyEl, } from '../Types';
 import { stopAllAnimations } from '../utils/animation';
+import {
+    ChevronDown,
+    ChevronRight,
+    Ellipsis,
+    Minus,
+    Pause,
+    Pencil,
+    Play,
+    Plus,
+    SkipBack,
+    Trash2,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const Timeline: React.FC = () => {
     const {
@@ -225,26 +241,31 @@ const Timeline: React.FC = () => {
             <div key={track.id} className="border-b border-gray-200">
                 {/* Track Header */}
                 <div className="flex items-center h-10 bg-gray-50 px-2 border-r border-gray-200">
-                    <button
+                    <Button
+                        size="icon"
+                        variant="ghost"
                         onClick={() => toggleTrackVisibility(track.id)}
-                        className={`w-4 h-4 rounded mr-2 ${track.visible ? 'bg-blue-500' : 'bg-gray-300'}`}
+                        className={`mr-2 h-4 w-4 min-h-4 min-w-4 p-0 ${track.visible ? 'bg-blue-500 hover:bg-blue-500' : 'bg-gray-300 hover:bg-gray-300'}`}
                     />
-                    <button
+                    <Button
+                        size="icon"
+                        variant="ghost"
                         onClick={() => toggleTrackLock(track.id)}
-                        className={`w-4 h-4 rounded mr-2 ${track.locked ? 'bg-red-500' : 'bg-gray-300'}`}
+                        className={`mr-2 h-4 w-4 min-h-4 min-w-4 p-0 ${track.locked ? 'bg-red-500 hover:bg-red-500' : 'bg-gray-300 hover:bg-gray-300'}`}
                     />
-                    <button
+                    <Button
+                        variant="ghost"
                         onClick={() => toggleTrackExpansion(track.id)}
-                        className="flex items-center flex-1 text-left hover:bg-gray-100 rounded px-1 -mx-1"
+                        className="h-8 flex-1 justify-start text-left hover:bg-gray-100 rounded px-1 -mx-1"
                     >
-                        <span className={`text-xs mr-2 transition-transform ${track.expanded ? 'rotate-90' : ''}`}>▶</span>
+                        <ChevronRight className={`h-3 w-3 mr-2 transition-transform ${track.expanded ? 'rotate-90' : ''}`} />
                         <span className="text-sm font-medium truncate" title={`${element.type} #${element.id.slice(0, 4)}`}>
                             {element.type} #{element.id.slice(0, 4)}
                         </span>
                         {!track.expanded && allKeyframes.length > 0 && (
                             <span className="text-xs text-gray-500 ml-2">({allKeyframes.length} keyframes)</span>
                         )}
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Collapsed: all keyframes on one row */}
@@ -306,7 +327,7 @@ const Timeline: React.FC = () => {
 
                     {/* Group selector */}
                     <select
-                        className="text-[11px] border rounded px-1 max-w-[80px]"
+                        className="text-[11px] border border-border rounded-md px-1 max-w-20 h-7 bg-background"
                         value={currentGroupId}
                         onChange={(e) => {
                             const value = e.target.value;
@@ -323,21 +344,25 @@ const Timeline: React.FC = () => {
 
                     {/* Track create / expand button */}
                     {!hasTrack ? (
-                        <button
+                        <Button
+                            size="icon"
+                            variant="default"
                             onClick={() => createTrackForElement(element.id)}
-                            className="text-xs bg-green-500 text-white px-1 rounded hover:bg-green-600"
+                            className="h-6 w-6"
                             title="Create animation track"
                         >
-                            +
-                        </button>
+                            <Plus className="h-3 w-3" />
+                        </Button>
                     ) : (
-                        <button
+                        <Button
+                            size="icon"
+                            variant="secondary"
                             onClick={() => toggleTrackExpansion(track!.id)}
-                            className="text-xs bg-gray-200 px-1 rounded hover:bg-gray-300"
+                            className="h-6 w-6"
                             title="Expand / collapse properties"
                         >
-                            {track!.expanded ? '–' : '⋯'}
-                        </button>
+                            {track!.expanded ? <Minus className="h-3 w-3" /> : <Ellipsis className="h-3 w-3" />}
+                        </Button>
                     )}
                 </div>
 
@@ -350,13 +375,15 @@ const Timeline: React.FC = () => {
                                     className="h-8 px-2 flex items-center justify-between border-t border-gray-100"
                                 >
                                     <span>{prop}</span>
-                                    <button
+                                    <Button
+                                        size="icon"
+                                        variant="default"
                                         onClick={() => addKeyframeAtCurrentTime(element.id, prop)}
-                                        className="w-4 h-4 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                                        className="w-4 h-4 min-w-4 min-h-4"
                                         title={`Add ${prop} keyframe`}
                                     >
-                                        +
-                                    </button>
+                                        <Plus className="h-3 w-3" />
+                                    </Button>
                                 </div>
                             ))}
                         </div>
@@ -376,10 +403,10 @@ const Timeline: React.FC = () => {
     );
 
     return (
-        <div className="bg-white border-t border-gray-200 flex flex-col h-64">
+        <Card className="rounded-none border-x-0 border-b-0 flex flex-col h-64 p-0 overflow-hidden">
             {/* Timeline Controls */}
             <div className="flex items-center gap-2 p-2 bg-gray-50 border-b border-gray-200">
-                <button
+                <Button
                     onClick={() => {
                         if (timeline.isPlaying) {
                             pauseTimeline();
@@ -387,17 +414,18 @@ const Timeline: React.FC = () => {
                             playTimeline();
                         }
                     }}
-                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    size="sm"
                 >
-                    {timeline.isPlaying ? '⏸️' : '▶️'}
-                </button>
+                    {timeline.isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                </Button>
 
-                <button
+                <Button
                     onClick={() => setTimelineTime(0)}
-                    className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                    size="sm"
+                    variant="secondary"
                 >
-                    ⏮️
-                </button>
+                    <SkipBack className="h-4 w-4" />
+                </Button>
 
                 <div className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
                     {formatTime(timeline.currentTime)} / {formatTime(timeline.duration)}
@@ -408,7 +436,7 @@ const Timeline: React.FC = () => {
                     <select
                         value={timeline.playbackSpeed}
                         onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
-                        className="text-xs border rounded px-1"
+                        className="text-xs border border-border rounded-md px-1 h-8 bg-background"
                     >
                         <option value={0.25}>0.25x</option>
                         <option value={0.5}>0.5x</option>
@@ -418,35 +446,37 @@ const Timeline: React.FC = () => {
                 </label>
 
                 <label className="text-sm flex items-center gap-1">
-                    <input type="checkbox" checked={timeline.loop} onChange={toggleLoop} />
+                    <Checkbox checked={timeline.loop} onCheckedChange={() => toggleLoop()} />
                     Loop
                 </label>
 
                 <label className="text-sm flex items-center gap-1">
                     Duration:
-                    <input
+                    <Input
                         type="number"
                         min="1"
                         max="60"
                         value={timeline.duration}
                         onChange={(e) => setTimelineDuration(Number(e.target.value))}
-                        className="w-16 text-xs border rounded px-1"
+                        className="w-16 h-8 text-xs"
                     />
                     s
                 </label>
-                <button
+                <Button
                     onClick={() => {
                         // simple default name; you can swap this for a prompt() if you like
                         const defaultName = `Group ${layerGroups.length + 1}`;
                         createGroup(prompt('New group name:', '') || defaultName);
                     }}
-                    className="ml-4 px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                    size="sm"
+                    variant="secondary"
+                    className="ml-4"
                 >
                     + Group
-                </button>
+                </Button>
                 {/* Group delete selector */}
                 <select
-                    className="px-2 py-1 text-xs bg-gray-100 border rounded"
+                    className="px-2 py-1 text-xs bg-background border border-border rounded-md h-8"
                     value={groupIdToDelete}
                     onChange={(e) => setGroupIdToDelete(e.target.value)}
                 >
@@ -458,17 +488,18 @@ const Timeline: React.FC = () => {
                     ))}
                 </select>
 
-                <button
+                <Button
                     onClick={() => {
                         if (!groupIdToDelete) return; // nothing selected
 
                         deleteGroup(groupIdToDelete);
                         setGroupIdToDelete(''); // reset after delete
                     }}
-                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                    size="sm"
+                    variant="secondary"
                 >
                     Delete group
-                </button>
+                </Button>
             </div>
 
             {/* Timeline Area */}
@@ -498,22 +529,26 @@ const Timeline: React.FC = () => {
                                         className="h-8 flex items-center px-2 bg-gray-100 cursor-pointer"
                                         onClick={() => toggleGroupCollapsed(group.id)}
                                     >
-                                        <span className="text-xs mr-1">{group.collapsed ? '▸' : '▾'}</span>
+                                        {group.collapsed ? <ChevronRight className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
                                         <span className="text-xs font-semibold truncate">{group.name}</span>
-                                        <button
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
                                             onClick={() => {
                                                 renameGroup(group.id, prompt('New group name:', group.name) || group.name)
-                                            }} className="px-2 py-1 text-xs"
+                                            }} className="h-6 w-6"
                                         >
-                                            ✏️
-                                        </button>
-                                        <button
+                                            <Pencil className="h-3 w-3" />
+                                        </Button>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
                                             onClick={() => {
                                                 deleteGroup(group.id);
-                                            }} className="px-2 py-1 text-xs"
+                                            }} className="h-6 w-6"
                                         >
-                                            🗑️
-                                        </button>
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
                                     </div>
 
                                     {/* Elements inside group */}
@@ -589,7 +624,7 @@ const Timeline: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </Card>
     );
 };
 

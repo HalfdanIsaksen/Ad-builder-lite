@@ -306,7 +306,7 @@ export const useEditorStore = create<State & Actions>()(
                     elements: state.elements.map(el =>
                         el.id === elementId ? { ...el, layerGroupId: groupId } : el
                     ),
-                })),
+            })),
 
 
             deleteGroup: (id, options) =>

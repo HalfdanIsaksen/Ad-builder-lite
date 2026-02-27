@@ -1,5 +1,7 @@
 import { useEditorStore } from '../store/useEditorStore';
 import type { CanvasPreset } from '../Types';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 const sizes: Record<CanvasPreset, { w: number; h: number; label: string }> = {
     desktop: { w: 970, h: 250, label: 'Desktop 970×250' },
@@ -16,12 +18,14 @@ export default function ResponsiveBar() {
     const preset = useEditorStore((s) => s.preset);
     const setPreset = useEditorStore((s) => s.setPreset);
     return (
-        <div className="flex items-center gap-2 p-2 border-b border-neutral-200 bg-white">
+        <Card className="rounded-none border-0 shadow-none p-0">
+            <div className="flex items-center gap-2 p-2">
             {(Object.keys(sizes) as (keyof typeof sizes)[]).map((k) => (
-                <button key={k} className={`btn ${preset === k ? 'btn-primary' : ''}`} onClick={() => setPreset(k)}>
+                <Button key={k} variant={preset === k ? 'default' : 'outline'} onClick={() => setPreset(k)}>
                     {sizes[k].label}
-                </button>
+                </Button>
             ))}
-        </div>
+            </div>
+        </Card>
     );
 }
