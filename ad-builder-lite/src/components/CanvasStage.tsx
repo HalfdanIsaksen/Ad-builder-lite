@@ -4,6 +4,7 @@ import { useEditorStore } from '../store/useEditorStore';
 import { useCanvasSize } from './ResponsiveBar';
 import Draggable from './Draggable';
 import { getAnimatedElement } from '../utils/animation'; // Import the animation utility
+import { Button } from '@/components/ui/button';
 
 export default function CanvasStage() {
   const {
@@ -278,12 +279,14 @@ export default function CanvasStage() {
           <>
             <span className="text-gray-300">|</span>
             <span>Zoom: {Math.round(zoom.scale * 100)}%</span>
-            <button 
+            <Button
+              size="sm"
+              variant="secondary"
               onClick={resetZoom}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded text-xs"
+              className="h-7 bg-white/20 hover:bg-white/30 text-white"
             >
               Reset
-            </button>
+            </Button>
           </>
         )}
       </div>

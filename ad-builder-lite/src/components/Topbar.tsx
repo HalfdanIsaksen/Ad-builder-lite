@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
 import { importJSONDialog } from '../utils/exporters';
 import ExportStage from './ExportStage';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 export default function Topbar() {
   const { elements, clear, addImageFromFile } = useEditorStore();
@@ -19,16 +21,17 @@ export default function Topbar() {
 
   return (
     <>
-      <div className="flex items-center justify-between p-3 border-b border-neutral-200 bg-white">
+      <Card className="rounded-none border-0 shadow-none p-0">
+        <div className="flex items-center justify-between p-3">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-xl bg-brand-500" />
           <h1 className="text-sm font-semibold">Ad Builder Lite</h1>
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="btn" onClick={() => clear()}>New</button>
+          <Button variant="outline" onClick={() => clear()}>New</Button>
 
-          <button className="btn" onClick={openFile}>Upload Image</button>
+          <Button variant="outline" onClick={openFile}>Upload Image</Button>
           <input
             ref={fileRef}
             type="file"
@@ -37,16 +40,17 @@ export default function Topbar() {
             onChange={onPick}
           />
 
-          <button className="btn" onClick={() => importJSONDialog()}>
+          <Button variant="outline" onClick={() => importJSONDialog()}>
             Import Template
-          </button>
+          </Button>
 
           {/* Unified Export button -> opens modal */}
-          <button className="btn" onClick={() => setExportOpen(true)}>
+          <Button onClick={() => setExportOpen(true)}>
             Export
-          </button>
+          </Button>
         </div>
-      </div>
+        </div>
+      </Card>
 
       {/* Export modal */}
       <ExportStage

@@ -1,8 +1,19 @@
-// ExportStage.tsx
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { AnyEl, CanvasPreset } from '../Types';
 import { exportJSON, exportHTML5Banner, exportAnimatedHTMLZip } from '../utils/exporters';
 import { useEditorStore } from '../store/useEditorStore';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
 
 type ExportStageProps = {
   open: boolean;
@@ -18,25 +29,13 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
   const [tab, setTab] = useState<TabKey>('html5');
   const [clickUrl, setClickUrl] = useState('https://example.com');
   const [title, setTitle] = useState('Ad Builder Banner');
-  const [htmlFilename, setHtmlFilename] = useState('banner');            // zip (HTML5)
-  const [animatedFilename, setAnimatedFilename] = useState('animated');  // single .html
+  const [htmlFilename, setHtmlFilename] = useState('banner');
+  const [animatedFilename, setAnimatedFilename] = useState('animated');
   const [jsonFilename, setJsonFilename] = useState('ad-builder');
   const [isBusy, setBusy] = useState(false);
-  const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Pull timeline for animated export
   const timeline = useEditorStore((s) => s.timeline);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  // Validation
   const canExport =
     tab === 'html5'
       ? !!clickUrl && !!title && safeElements.length > 0
@@ -47,25 +46,13 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
       setBusy(true);
 
       if (tab === 'html5') {
-        // Zipped HTML5 banner with assets + clickTag, uses exporters.ts
         await exportHTML5Banner(safeElements, preset, { clickUrl, title });
       } else if (tab === 'animated') {
         await exportAnimatedHTMLZip(
           { elements: safeElements, timeline, preset },
           { title, clickUrl, filenameBase: animatedFilename || 'animated' }
         );
-        /* Single .html with CSS keyframes from timeline, uses exporters.ts
-
-        const html = exportAnimatedHTML({ elements: safeElements, timeline, preset });
-        const blob = new Blob([html], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${animatedFilename || 'animated'}.html`;
-        a.click();
-        URL.revokeObjectURL(url);*/
       } else {
-        // JSON template export, uses exporters.ts
         await Promise.resolve(exportJSON(safeElements));
       }
 
@@ -78,167 +65,113 @@ export default function ExportStage({ open, onClose, elements, preset }: ExportS
     }
   };
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === overlayRef.current) onClose();
-  };
-
   return (
-    <div
-      ref={overlayRef}
-      onMouseDown={handleOverlayClick}
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black bg-opacity-40"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="w-full max-w-xl rounded-2xl bg-white shadow-xl border border-neutral-200"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200">
-          <h2 className="text-base font-semibold">Export</h2>
-          <button
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-neutral-100"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Export</DialogTitle>
+        </DialogHeader>
 
-        {/* Tabs */}
-        <div className="px-5 pt-4">
-          <div className="inline-flex rounded-xl border border-neutral-200 p-1 bg-neutral-50">
-            <button
-              onClick={() => setTab('html5')}
-              className={`px-3 py-1.5 rounded-lg text-sm ${tab === 'html5' ? 'bg-white shadow border border-neutral-200' : 'text-neutral-600'}`}
-            >
-              HTML5 Banner
-            </button>
-            <button
-              onClick={() => setTab('animated')}
-              className={`px-3 py-1.5 rounded-lg text-sm ${tab === 'animated' ? 'bg-white shadow border border-neutral-200' : 'text-neutral-600'}`}
-            >
-              Animated HTML
-            </button>
-            <button
-              onClick={() => setTab('json')}
-              className={`px-3 py-1.5 rounded-lg text-sm ${tab === 'json' ? 'bg-white shadow border border-neutral-200' : 'text-neutral-600'}`}
-            >
-              Template (JSON)
-            </button>
-          </div>
-        </div>
+        <Tabs value={tab} onValueChange={(value) => setTab(value as TabKey)} className="w-full">
+          <TabsList>
+            <TabsTrigger value="html5">HTML5 Banner</TabsTrigger>
+            <TabsTrigger value="animated">Animated HTML</TabsTrigger>
+            <TabsTrigger value="json">Template (JSON)</TabsTrigger>
+          </TabsList>
 
-        {/* Body */}
-        <div className="p-5">
-          {tab === 'html5' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Click-through URL (clickTag)</label>
-                <input
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  type="url"
-                  placeholder="https://example.com"
-                  value={clickUrl}
-                  onChange={(e) => setClickUrl(e.target.value)}
-                  required
-                />
-                <p className="mt-1 text-xs text-neutral-500">
-                  Will be injected as <code>window.clickTag</code>.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Banner title</label>
-                <input
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  type="text"
-                  placeholder="Ad Builder Banner"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Filename (zip)</label>
-                <input
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  type="text"
-                  placeholder="banner"
-                  value={htmlFilename}
-                  onChange={(e) => setHtmlFilename(e.target.value)}
-                />
-                <p className="mt-1 text-xs text-neutral-500">Saved as <code>{htmlFilename || 'banner'}_WxH.zip</code>.</p>
-              </div>
-
-              <div className="rounded-lg bg-neutral-50 border border-neutral-200 p-3 text-xs text-neutral-700">
-                <div className="font-medium mb-1">Current preset</div>
-                <div>Exporting for: <span className="font-mono">{preset}</span></div>
-              </div>
+          <TabsContent value="html5" className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Click-through URL (clickTag)</Label>
+              <Input
+                type="url"
+                placeholder="https://example.com"
+                value={clickUrl}
+                onChange={(e) => setClickUrl(e.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">Will be injected as window.clickTag.</p>
             </div>
-          )}
 
-          {tab === 'animated' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Filename (.html)</label>
-                <input
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  type="text"
-                  placeholder="animated"
-                  value={animatedFilename}
-                  onChange={(e) => setAnimatedFilename(e.target.value)}
-                />
-                <p className="mt-1 text-xs text-neutral-500">
-                  Generates a single HTML file with CSS keyframes using the current timeline.
-                </p>
-              </div>
-
-              <div className="rounded-lg bg-neutral-50 border border-neutral-200 p-3 text-xs text-neutral-700">
-                <div className="font-medium mb-1">Animation summary</div>
-                <ul className="list-disc pl-5">
-                  <li>Preset: <span className="font-mono">{preset}</span></li>
-                  <li>Tracks: {timeline?.tracks?.length ?? 0}</li>
-                  <li>Duration: {timeline?.duration ?? 0}s {timeline?.loop ? '(looping)' : ''}</li>
-                </ul>
-              </div>
+            <div className="space-y-2">
+              <Label>Banner title</Label>
+              <Input
+                type="text"
+                placeholder="Ad Builder Banner"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
             </div>
-          )}
 
-          {tab === 'json' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Filename (.json)</label>
-                <input
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  type="text"
-                  placeholder="ad-builder"
-                  value={jsonFilename}
-                  onChange={(e) => setJsonFilename(e.target.value)}
-                />
-                <p className="mt-1 text-xs text-neutral-500">Note: the built-in JSON exporter always saves as <code>ad.json</code>.</p>
-              </div>
-
-              <div className="rounded-lg bg-neutral-50 border border-neutral-200 p-3 text-xs text-neutral-700">
-                <div className="font-medium mb-1">What’s included</div>
-                <ul className="list-disc pl-5">
-                  <li>All elements currently in the canvas</li>
-                  <li>Properties as defined in <code>AnyEl</code></li>
-                </ul>
-              </div>
+            <div className="space-y-2">
+              <Label>Filename (zip)</Label>
+              <Input
+                type="text"
+                placeholder="banner"
+                value={htmlFilename}
+                onChange={(e) => setHtmlFilename(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Saved as {htmlFilename || 'banner'}_WxH.zip.</p>
             </div>
-          )}
-        </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-neutral-200">
-          <button className="btn" onClick={onClose} disabled={isBusy}>Cancel</button>
-          <button className="btn" disabled={!canExport || isBusy} onClick={doExport}>
+            <Card className="p-3 text-xs">
+              <div className="font-medium mb-1">Current preset</div>
+              <div>Exporting for: <span className="font-mono">{preset}</span></div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="animated" className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Filename (.html)</Label>
+              <Input
+                type="text"
+                placeholder="animated"
+                value={animatedFilename}
+                onChange={(e) => setAnimatedFilename(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Generates a single HTML file with CSS keyframes using the current timeline.
+              </p>
+            </div>
+
+            <Card className="p-3 text-xs">
+              <div className="font-medium mb-1">Animation summary</div>
+              <ul className="list-disc pl-5">
+                <li>Preset: <span className="font-mono">{preset}</span></li>
+                <li>Tracks: {timeline?.tracks?.length ?? 0}</li>
+                <li>Duration: {timeline?.duration ?? 0}s {timeline?.loop ? '(looping)' : ''}</li>
+              </ul>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="json" className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Filename (.json)</Label>
+              <Input
+                type="text"
+                placeholder="ad-builder"
+                value={jsonFilename}
+                onChange={(e) => setJsonFilename(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Note: the built-in JSON exporter always saves as ad.json.</p>
+            </div>
+
+            <Card className="p-3 text-xs">
+              <div className="font-medium mb-1">What’s included</div>
+              <ul className="list-disc pl-5">
+                <li>All elements currently in the canvas</li>
+                <li>Properties as defined in AnyEl</li>
+              </ul>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isBusy}>Cancel</Button>
+          <Button disabled={!canExport || isBusy} onClick={doExport}>
             {isBusy ? 'Exporting…' : tab === 'html5' ? 'Export HTML5 (zip)' : tab === 'animated' ? 'Export Animated HTML' : 'Export JSON'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
