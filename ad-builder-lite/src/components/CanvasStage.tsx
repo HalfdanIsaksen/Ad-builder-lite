@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { Stage, Layer, Group, Transformer, Rect } from 'react-konva';
+import { Stage, Layer, Group, Transformer, Rect, Ellipse } from 'react-konva';
 import { useEditorStore } from '../store/useEditorStore';
 import { useCanvasSize } from './ResponsiveBar';
 import Draggable from './Draggable';
@@ -36,6 +36,13 @@ export default function CanvasStage() {
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [lastPointerPosition, setLastPointerPosition] = useState({ x: 0, y: 0 });
+  const [drawDraft, setDrawDraft] = useState<{
+    tool: 'draw-rect' | 'draw-circle';
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
   const onDrop = async (e: React.DragEvent<HTMLDivElement>) => {
@@ -111,6 +118,34 @@ export default function CanvasStage() {
       }
     }
   };
+
+  const getDesignPointer = useCallback((stage: any) => {
+    const pointer = stage.getPointerPosition();
+    return {
+      x: (pointer.x - zoom.x) / (sx * zoom.scale),
+      y: (pointer.y - zoom.y) / (sy * zoom.scale),
+    };
+  }, [zoom.x, zoom.y, zoom.scale, sx, sy]);
+
+  const toDraftBounds = useCallback((draft: NonNullable<typeof drawDraft>) => {
+    const x = Math.min(draft.startX, draft.currentX);
+    const y = Math.min(draft.startY, draft.currentY);
+    const width = Math.max(1, Math.abs(draft.currentX - draft.startX));
+    const height = Math.max(1, Math.abs(draft.currentY - draft.startY));
+    return { x, y, width, height };
+  }, []);
+
+  const getConstrainedPointer = useCallback((draftStart: { startX: number; startY: number }, pointer: { x: number; y: number }, keepRatio: boolean) => {
+    if (!keepRatio) return pointer;
+    const dx = pointer.x - draftStart.startX;
+    const dy = pointer.y - draftStart.startY;
+    const side = Math.max(Math.abs(dx), Math.abs(dy));
+    return {
+      x: draftStart.startX + Math.sign(dx || 1) * side,
+      y: draftStart.startY + Math.sign(dy || 1) * side,
+    };
+  }, []);
+
   // Handle wheel zoom
   const handleWheel = useCallback((e: any) => {
     if (currentTool !== 'zoom') return;
@@ -132,17 +167,48 @@ export default function CanvasStage() {
 
   // Handle pan when zoom tool is active
   const handleMouseDown = useCallback((e: any) => {
+    const stage = e.target.getStage();
+
+    if ((currentTool === 'draw-rect' || currentTool === 'draw-circle') && e.target === stage) {
+      const pointer = getDesignPointer(stage);
+      select(null);
+      setSelectedNode(null);
+      setDrawDraft({
+        tool: currentTool,
+        startX: pointer.x,
+        startY: pointer.y,
+        currentX: pointer.x,
+        currentY: pointer.y,
+      });
+      return;
+    }
+
     if (currentTool === 'zoom' && e.target === e.target.getStage()) {
       setIsDragging(true);
-      const pos = e.target.getStage().getPointerPosition();
+      const pos = stage.getPointerPosition();
       setLastPointerPosition(pos);
     }
-  }, [currentTool]);
+  }, [currentTool, getDesignPointer, select]);
 
   const handleMouseMove = useCallback((e: any) => {
+    const stage = e.target.getStage();
+
+    if (drawDraft) {
+      const pointer = getDesignPointer(stage);
+      const constrained = getConstrainedPointer(drawDraft, pointer, !!e.evt?.shiftKey);
+      setDrawDraft((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          currentX: constrained.x,
+          currentY: constrained.y,
+        };
+      });
+      return;
+    }
+
     if (!isDragging || currentTool !== 'zoom') return;
 
-    const stage = e.target.getStage();
     const pos = stage.getPointerPosition();
 
     const newX = zoom.x + (pos.x - lastPointerPosition.x);
@@ -150,11 +216,33 @@ export default function CanvasStage() {
 
     setZoom(zoom.scale, newX, newY);
     setLastPointerPosition(pos);
-  }, [isDragging, currentTool, zoom, lastPointerPosition, setZoom]);
+  }, [drawDraft, getConstrainedPointer, getDesignPointer, isDragging, currentTool, zoom, lastPointerPosition, setZoom]);
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((e: any) => {
+    if (drawDraft) {
+      let finalizedDraft = drawDraft;
+
+      const stage = e?.target?.getStage?.();
+      if (stage) {
+        const pointer = getDesignPointer(stage);
+        const constrained = getConstrainedPointer(drawDraft, pointer, !!e.evt?.shiftKey);
+        finalizedDraft = {
+          ...drawDraft,
+          currentX: constrained.x,
+          currentY: constrained.y,
+        };
+      }
+
+      const { x, y, width, height } = toDraftBounds(finalizedDraft);
+      const minSize = 1;
+      if (width >= minSize && height >= minSize) {
+        addElement(drawDraft.tool === 'draw-rect' ? 'rect' : 'circle', { x, y, width, height });
+      }
+      setDrawDraft(null);
+      setTool('select');
+    }
     setIsDragging(false);
-  }, []);
+  }, [addElement, drawDraft, getConstrainedPointer, getDesignPointer, setTool, toDraftBounds]);
 
 
   /*const handleElementClick = (elementId: string) => {
@@ -202,7 +290,7 @@ export default function CanvasStage() {
           onWheel={handleWheel}
           onClick={handleStageClick}
           onTap={handleStageClick}
-          style={{ cursor: currentTool === 'zoom' ? 'zoom-in' : 'default' }}
+          style={{ cursor: currentTool === 'zoom' ? 'zoom-in' : (currentTool === 'draw-rect' || currentTool === 'draw-circle') ? 'crosshair' : 'default' }}
         >
           <Layer>
             {/* Root group scales design space -> preset space and applies zoom */}
@@ -244,6 +332,42 @@ export default function CanvasStage() {
                   />
                 );
               })}
+
+              {drawDraft && (() => {
+                const { x, y, width, height } = toDraftBounds(drawDraft);
+                const draftFill = 'rgba(59, 130, 246, 0.2)';
+                const draftStroke = '#2563eb';
+
+                if (drawDraft.tool === 'draw-circle') {
+                  return (
+                    <Ellipse
+                      x={x + width / 2}
+                      y={y + height / 2}
+                      radiusX={width / 2}
+                      radiusY={height / 2}
+                      fill={draftFill}
+                      stroke={draftStroke}
+                      strokeWidth={2 / zoom.scale}
+                      dash={[6 / zoom.scale, 4 / zoom.scale]}
+                      listening={false}
+                    />
+                  );
+                }
+
+                return (
+                  <Rect
+                    x={x}
+                    y={y}
+                    width={width}
+                    height={height}
+                    fill={draftFill}
+                    stroke={draftStroke}
+                    strokeWidth={2 / zoom.scale}
+                    dash={[6 / zoom.scale, 4 / zoom.scale]}
+                    listening={false}
+                  />
+                );
+              })()}
             </Group>
 
             {/* Transformer for selected element - outside the scaled group */}

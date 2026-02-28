@@ -1,6 +1,6 @@
 //Element types
 
-export type ElementType = 'text' | 'image' | 'button';
+export type ElementType = 'text' | 'image' | 'button' | 'rect' | 'circle';
 
 export type BaseEl = {
   id: string;
@@ -41,15 +41,20 @@ export type ButtonEl = BaseEl & {
 
 export type RectEl = BaseEl & {
   type: 'rect';
+  hasFill?: boolean;
   fill?: string;
+  strokeColor?: string;
+  strokeWidth?: number;
 };
 
 export type CircleEl = BaseEl & {
   type: 'circle';
-  radius: number;
+  hasFill?: boolean;
   fill?: string;
+  strokeColor?: string;
+  strokeWidth?: number;
 }
-export type AnyEl = TextEl | ImageEl | ButtonEl;
+export type AnyEl = TextEl | ImageEl | ButtonEl | RectEl | CircleEl;
 /*export type AnyEl = (TextEl | ImageEl | ButtonEl) & {
   layerGroupId?: LayerGroupId | null; 
   layerOrder?: number;                
@@ -107,5 +112,5 @@ export type TimelineState = {
 
 //tool bar types
 // mouse changes to icon for each tool selected
-export type Tool = 'select' | 'draw-text' | 'zoom';
+export type Tool = 'select' | 'draw-text' | 'draw-rect' | 'draw-circle' | 'zoom';
 

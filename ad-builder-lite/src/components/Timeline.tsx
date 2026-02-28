@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
 import type { AnimationProperty, AnimationTrack, Keyframe, AnyEl, } from '../Types';
 import { stopAllAnimations } from '../utils/animation';
@@ -148,18 +148,18 @@ const Timeline: React.FC = () => {
         });
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!dragState.isDragging) return;
 
         const deltaX = e.clientX - dragState.startX;
         const deltaTime = deltaX / pixelsPerSecond;
         const newTime = Math.max(0, Math.min(dragState.startTime + deltaTime, timeline.duration));
         setTimelineTime(newTime);
-    };
+    }, [dragState.isDragging, dragState.startX, dragState.startTime, pixelsPerSecond, timeline.duration, setTimelineTime]);
 
-    const handleMouseUp = () => {
+    const handleMouseUp = useCallback(() => {
         setDragState({ isDragging: false, startX: 0, startTime: 0 });
-    };
+    }, []);
 
     useEffect(() => {
         if (dragState.isDragging) {
@@ -170,7 +170,7 @@ const Timeline: React.FC = () => {
                 document.removeEventListener('mouseup', handleMouseUp);
             };
         }
-    }, [dragState.isDragging]);
+    }, [dragState.isDragging, handleMouseMove, handleMouseUp]);
 
     const formatTime = (time: number) => {
         const minutes = Math.floor(time / 60);

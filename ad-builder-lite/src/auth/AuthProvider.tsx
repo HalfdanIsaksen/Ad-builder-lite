@@ -1,5 +1,5 @@
 // src/auth/AuthProvider.tsx
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import * as api from "../lib/api";
 
 type AuthCtx = {
@@ -17,7 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<api.User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
       const u = await api.me();
@@ -25,11 +25,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     refresh();
-  }, []);
+  }, [refresh]);
 
   const value = useMemo<AuthCtx>(
     () => ({
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
       },
     }),
-    [user]
+    [user, loading, refresh]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

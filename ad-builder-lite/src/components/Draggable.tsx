@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { Text, Image as KImage, Group, Rect } from 'react-konva';
+import { Text, Image as KImage, Group, Rect, Ellipse } from 'react-konva';
 import useImage from 'use-image';
 import { useEditorStore } from '../store/useEditorStore';
-import type { AnyEl, ButtonEl, ImageEl, TextEl } from '../Types';
+import type { AnyEl, ButtonEl, CircleEl, ImageEl, RectEl, TextEl } from '../Types';
 import { getAnimatedElement, createKonvaAnimations, stopElementAnimations, getAnimatedValue } from '../utils/animation';
 
 type EventProps = {
@@ -85,7 +85,7 @@ export default function Draggable({
     return () => {
       stopElementAnimations(el.id);
     };
-  }, [timeline.isPlaying, el.id, timeline.tracks, timeline.currentTime]);
+  }, [timeline.isPlaying, el, el.id, timeline.tracks, timeline.currentTime, timeline.playbackSpeed]);
 
   const transformStartRef = useRef<{ width: number; height: number; rotation: number } | null>(null);
 
@@ -294,6 +294,53 @@ export default function Draggable({
           width={b.width}
           height={b.height}
           fontStyle="600"
+        />
+      </Group>
+    );
+  }
+
+  if (el.type === 'rect') {
+    const r = animatedEl as RectEl;
+    return (
+      <Rect
+        ref={nodeRef}
+        x={r.x}
+        y={r.y}
+        width={r.width}
+        height={r.height}
+        fill={r.hasFill === false ? undefined : (r.fill ?? '#2563eb')}
+        stroke={r.strokeColor ?? '#1e40af'}
+        strokeWidth={r.strokeWidth ?? 2}
+        opacity={r.opacity ?? 1}
+        rotation={r.rotation ?? 0}
+        listening
+        {...eventProps}
+      />
+    );
+  }
+
+  if (el.type === 'circle') {
+    const c = animatedEl as CircleEl;
+    return (
+      <Group
+        ref={nodeRef}
+        x={c.x}
+        y={c.y}
+        width={c.width}
+        height={c.height}
+        opacity={c.opacity ?? 1}
+        rotation={c.rotation ?? 0}
+        listening
+        {...eventProps}
+      >
+        <Ellipse
+          x={c.width / 2}
+          y={c.height / 2}
+          radiusX={c.width / 2}
+          radiusY={c.height / 2}
+          fill={c.hasFill === false ? undefined : (c.fill ?? '#22c55e')}
+          stroke={c.strokeColor ?? '#166534'}
+          strokeWidth={c.strokeWidth ?? 2}
         />
       </Group>
     );
