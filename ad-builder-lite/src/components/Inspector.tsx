@@ -3,6 +3,8 @@ import type { AnyEl } from '../Types';
 import { useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ColorField } from '@/components/ColorField';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -59,7 +61,10 @@ export default function Inspector() {
                     <Label>Font size</Label>
                     <Input type="number" value={(el as any).fontSize} onChange={onNum('fontSize' as any)} />
                     <Label>Color</Label>
-                    <Input value={(el as any).fill ?? '#111'} onChange={onStr('fill' as any)} />
+                    <ColorField
+                        value={(el as any).fill ?? '#111111'}
+                        onChange={(value) => updateElement(el.id, { fill: value } as any)}
+                    />
                 </div>
             )}
 
@@ -125,17 +130,59 @@ export default function Inspector() {
                     ) : (
                         <>
                             <Label>Fill</Label>
-                            <Input value={(el as any).fill ?? '#2563eb'} onChange={onStr('fill' as keyof AnyEl)} />
+                            <ColorField
+                                value={(el as any).fill ?? '#2563eb'}
+                                onChange={(value) => updateElement(el.id, { fill: value } as any)}
+                            />
                         </>
                     )}
                     <Label>Label</Label>
                     <Input value={(el as any).label} onChange={onStr('label' as any)} />
                     <Label>Link</Label>
                     <Input value={(el as any).href ?? ''} onChange={onStr('href' as any)} />
-                    <Label>Fill</Label>
-                    <Input value={(el as any).fill ?? '#2563eb'} onChange={onStr('fill' as any)} />
                     <Label>Text Color</Label>
-                    <Input value={(el as any).textColor ?? '#fff'} onChange={onStr('textColor' as any)} />
+                    <ColorField
+                        value={(el as any).textColor ?? '#ffffff'}
+                        onChange={(value) => updateElement(el.id, { textColor: value } as any)}
+                    />
+                </div>
+            )}
+
+            {(el.type === 'rect' || el.type === 'circle') && (
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="shape-fill-toggle">Fill</Label>
+                        <Checkbox
+                            id="shape-fill-toggle"
+                            checked={(el as any).hasFill !== false}
+                            onCheckedChange={(checked) => updateElement(el.id, { hasFill: checked === true } as any)}
+                        />
+                    </div>
+
+                    {(el as any).hasFill !== false && (
+                        <>
+                            <Label>Fill Color</Label>
+                            <ColorField
+                                value={(el as any).fill ?? '#2563eb'}
+                                onChange={(value) => updateElement(el.id, { fill: value } as any)}
+                            />
+                        </>
+                    )}
+
+                    <Label>Stroke Color</Label>
+                    <ColorField
+                        value={(el as any).strokeColor ?? '#1e40af'}
+                        onChange={(value) => updateElement(el.id, { strokeColor: value } as any)}
+                    />
+
+                    <Label>Stroke Width</Label>
+                    <Input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={(el as any).strokeWidth ?? 2}
+                        onChange={(e) => updateElement(el.id, { strokeWidth: Number(e.target.value) } as any)}
+                    />
                 </div>
             )}
             </Card>

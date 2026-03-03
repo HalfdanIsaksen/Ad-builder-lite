@@ -1,5 +1,5 @@
 import { useEditorStore } from '../store/useEditorStore';
-import { MousePointer2, Type, Search, RotateCcw } from 'lucide-react';
+import { MousePointer2, Type, Search, RotateCcw, Square, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -27,6 +27,20 @@ export default function Sidebar() {
                         onClick={() => setTool('draw-text')}
                     >
                         <Type className="mr-2 h-4 w-4" /> Text Tool
+                    </Button>
+                    <Button
+                        variant={currentTool === 'draw-rect' ? 'default' : 'outline'}
+                        className="justify-start"
+                        onClick={() => setTool('draw-rect')}
+                    >
+                        <Square className="mr-2 h-4 w-4" /> Rectangle Tool
+                    </Button>
+                    <Button
+                        variant={currentTool === 'draw-circle' ? 'default' : 'outline'}
+                        className="justify-start"
+                        onClick={() => setTool('draw-circle')}
+                    >
+                        <Circle className="mr-2 h-4 w-4" /> Circle Tool
                     </Button>
                     <Button
                         variant={currentTool === 'zoom' ? 'default' : 'outline'}

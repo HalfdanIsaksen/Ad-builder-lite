@@ -151,6 +151,28 @@ export const useEditorStore = create<State & Actions>()(
                             type: 'image',
                             src: 'https://picsum.photos/400/240',
                         } as AnyEl;
+                    } else if (type === 'rect') {
+                        el = {
+                            ...common,
+                            type: 'rect',
+                            width: 180,
+                            height: 120,
+                            hasFill: true,
+                            fill: '#2563eb',
+                            strokeColor: '#1e40af',
+                            strokeWidth: 2,
+                        } as AnyEl;
+                    } else if (type === 'circle') {
+                        el = {
+                            ...common,
+                            type: 'circle',
+                            width: 120,
+                            height: 120,
+                            hasFill: true,
+                            fill: '#22c55e',
+                            strokeColor: '#166534',
+                            strokeWidth: 2,
+                        } as AnyEl;
                     } else {
                         // button
                         el = {
@@ -365,7 +387,7 @@ export const useEditorStore = create<State & Actions>()(
 
             addKeyframe: (elementId, property, time, value: number | { x: number; y: number }) => set((s) => {
                 const trackIndex = s.timeline.tracks.findIndex(t => t.elementId === elementId);
-                let tracks = [...s.timeline.tracks];
+                const tracks = [...s.timeline.tracks];
 
                 const keyframe: Keyframe = {
                     id: uid(),
