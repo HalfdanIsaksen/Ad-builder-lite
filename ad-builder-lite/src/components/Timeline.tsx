@@ -112,6 +112,7 @@ const Timeline: React.FC = () => {
                 if (timeline.loop) {
                     setTimelineTime(0);
                 } else {
+                    setTimelineTime(timeline.duration);
                     pauseTimeline();
                 }
             } else {
