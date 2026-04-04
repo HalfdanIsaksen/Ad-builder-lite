@@ -27,10 +27,10 @@ export async function me() {
   return apiFetch<User | null>("/auth/me", { method: "GET" });
 }
 
-export async function login(email: string, password: string) {
+export async function login(usernameOrEmail: string, password: string) {
   return apiFetch<User>("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ usernameOrEmail, password }),
   });
 }
 
