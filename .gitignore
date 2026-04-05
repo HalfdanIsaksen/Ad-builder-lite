@@ -18,6 +18,10 @@ jspm_packages/
 # Distribution directories
 dist/
 
+# dotenv environment variable files
+.env
+
+
 # Typescript v1 declaration files
 typings/
 
