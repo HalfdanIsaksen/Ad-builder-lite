@@ -1,5 +1,11 @@
-// src/auth/AuthProvider.tsx
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import * as api from "../lib/api";
 
 type AuthCtx = {
@@ -7,7 +13,7 @@ type AuthCtx = {
   loading: boolean;
   refresh: () => Promise<void>;
   login: (usernameOrEmail: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -20,8 +26,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const u = await api.me();
-      setUser(u);
+      const res = await api.me();
+      setUser(res.user);
+    } catch {
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -36,14 +44,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       loading,
       refresh,
+
       login: async (usernameOrEmail, password) => {
-        const u = await api.login(usernameOrEmail, password);
-        setUser(u);
+        await api.login(usernameOrEmail, password);
+        await refresh();
       },
-      register: async (email, password) => {
-        const u = await api.register(email, password);
-        setUser(u);
+
+      register: async (username, email, password) => {
+        await api.register(username, email, password);
+        await refresh();
       },
+
       logout: async () => {
         await api.logout();
         setUser(null);
