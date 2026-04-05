@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
+import { useAuth } from '../auth/AuthProvider';
 import { importJSONDialog } from '../utils/exporters';
 import ExportStage from './ExportStage';
+import AuthModal from './AuthModal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { CanvasPreset } from '../Types';
@@ -16,6 +18,7 @@ export default function Topbar() {
   const { elements, clear, addImageFromFile } = useEditorStore();
   const preset = useEditorStore((s) => s.preset); // desktop/tablet/mobile
   const setPreset = useEditorStore((s) => s.setPreset);
+  const { user, logout, loading } = useAuth();
 
   const fileRef = useRef<HTMLInputElement>(null);
   const openFile = () => fileRef.current?.click();
@@ -26,6 +29,8 @@ export default function Topbar() {
   };
 
   const [isExportOpen, setExportOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
 
   return (
     <>
@@ -65,6 +70,27 @@ export default function Topbar() {
             <Button onClick={() => setExportOpen(true)}>
               Export
             </Button>
+
+            {/* Auth buttons */}
+            {!loading && (
+              user ? (
+                <div className="flex items-center gap-2 ml-2">
+                  <span className="text-sm text-muted-foreground">{user.username ?? user.email}</span>
+                  <Button variant="outline" size="sm" onClick={() => logout()}>
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 ml-2">
+                  <Button variant="outline" onClick={() => { setAuthTab('login'); setAuthOpen(true); }}>
+                    Login
+                  </Button>
+                  <Button onClick={() => { setAuthTab('signup'); setAuthOpen(true); }}>
+                    Sign Up
+                  </Button>
+                </div>
+              )
+            )}
           </div>
         </div>
       </Card>
@@ -75,6 +101,13 @@ export default function Topbar() {
         onClose={() => setExportOpen(false)}
         elements={elements}
         preset={preset}
+      />
+
+      {/* Auth modal */}
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        defaultTab={authTab}
       />
     </>
   );
