@@ -11,45 +11,57 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `Request failed: ${res.status}`);
+    let message = `Request failed: ${res.status}`;
+
+    try {
+      const data = await res.json();
+      message = data?.error || message;
+    } catch {
+      const text = await res.text().catch(() => "");
+      if (text) message = text;
+    }
+
+    throw new Error(message);
   }
 
-  // Some endpoints might return 204
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
 /** ---- Auth ---- */
-export type User = { id: string; email: string };
+export type User = {
+  id: string;
+  username: string;
+  email?: string;
+};
 
 export async function me() {
-  return apiFetch<User | null>("/auth/me", { method: "GET" });
+  return apiFetch<{ user: User | null }>("/auth/me", { method: "GET" });
 }
 
-export async function login(email: string, password: string) {
-  return apiFetch<User>("/auth/login", {
+export async function login(usernameOrEmail: string, password: string) {
+  return apiFetch<{ id: string; username: string }>("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ usernameOrEmail, password }),
   });
 }
 
-export async function register(email: string, password: string) {
-  return apiFetch<User>("/auth/register", {
+export async function register(username: string, email: string, password: string) {
+  return apiFetch<{ id: string; username: string }>("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ username, email, password }),
   });
 }
 
 export async function logout() {
-  return apiFetch<void>("/auth/logout", { method: "POST" });
+  return apiFetch<{ ok: true }>("/auth/logout", { method: "POST" });
 }
 
 /** ---- Templates ---- */
 export type TemplateRow = {
   id: string;
   name: string;
-  json: any; // your canvas/template schema
+  json: any;
   updatedAt: string;
 };
 
@@ -72,7 +84,7 @@ export async function getTemplate(id: string) {
 export type ProjectRow = {
   id: string;
   name: string;
-  json: any; // full project state schema
+  json: any;
   updatedAt: string;
 };
 

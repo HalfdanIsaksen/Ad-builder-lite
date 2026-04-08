@@ -362,7 +362,14 @@ export const useEditorStore = create<State & Actions>()(
                 }),
             // Timeline actions
             playTimeline: () => set((s) => ({
-                timeline: { ...s.timeline, isPlaying: true }
+                timeline: {
+                    ...s.timeline,
+                    isPlaying: true,
+                    // If we're at (or near) the end and not looping, restart from the beginning
+                    currentTime: (!s.timeline.loop && s.timeline.currentTime >= s.timeline.duration - 0.05)
+                        ? 0
+                        : s.timeline.currentTime,
+                }
             })),
 
             pauseTimeline: () => set((s) => ({

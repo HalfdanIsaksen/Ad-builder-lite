@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 
 export function LoginForm({ onDone }: { onDone?: () => void }) {
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -19,7 +19,7 @@ export function LoginForm({ onDone }: { onDone?: () => void }) {
           setBusy(true);
           setErr(null);
           try {
-            await login(email, password);
+            await login(usernameOrEmail, password);
             onDone?.();
           } catch (e: any) {
             setErr(e?.message ?? "Login failed");
@@ -29,7 +29,7 @@ export function LoginForm({ onDone }: { onDone?: () => void }) {
         }}
         className="grid gap-2"
       >
-        <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" />
+        <Input value={usernameOrEmail} onChange={(e) => setUsernameOrEmail(e.target.value)} placeholder="Username or email" />
         <Input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" type="password" />
         {err && <div className="text-destructive text-xs">{err}</div>}
         <Button type="submit" disabled={busy}>
