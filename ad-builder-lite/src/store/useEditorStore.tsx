@@ -1,9 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AnyEl, CanvasPreset, ElementType, TimelineState, Keyframe, AnimationProperty, Tool, LayerGroup, LayerGroupId } from '../Types';
+import type { ImportedTemplateData } from '../utils/exporters';
 import { fileToDataURL } from '../utils/files';
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
+
+function createDefaultTimeline(): TimelineState {
+    return {
+        currentTime: 0,
+        duration: 10,
+        isPlaying: false,
+        playbackSpeed: 1.0,
+        loop: false,
+        tracks: []
+    };
+}
 
 type State = {
     elements: AnyEl[];
@@ -29,7 +41,12 @@ type Actions = {
     removeElement: (id: string) => void;
     select: (id: string | null) => void;
     clear: () => void;
-    importJSON: (data: AnyEl[]) => void;
+    importJSON: (data: AnyEl[] | ImportedTemplateData) => void;
+    exportAnimationData: () => {
+        elements: AnyEl[];
+        timeline: TimelineState;
+        preset: CanvasPreset;
+    };
 
     //Tool actions
     setTool: (tool: Tool) => void;
@@ -67,14 +84,7 @@ export const useEditorStore = create<State & Actions>()(
             elements: [],
             selectedId: null,
             preset: 'desktop',
-            timeline: {
-                currentTime: 0,
-                duration: 10, // 10 seconds default
-                isPlaying: false,
-                playbackSpeed: 1.0,
-                loop: false,
-                tracks: []
-            },
+            timeline: createDefaultTimeline(),
             currentTool: 'select' as Tool,
             layerGroups: [],
 
@@ -275,17 +285,28 @@ export const useEditorStore = create<State & Actions>()(
             clear: () => set({
                 elements: [],
                 selectedId: null,
-                timeline: {
-                    currentTime: 0,
-                    duration: 10,
-                    isPlaying: false,
-                    playbackSpeed: 1.0,
-                    loop: false,
-                    tracks: []
-                }
+                timeline: createDefaultTimeline(),
+                layerGroups: []
             }),
 
-            importJSON: (data) => set({ elements: data, selectedId: null }),
+            importJSON: (data) => set((state) => {
+                if (Array.isArray(data)) {
+                    return {
+                        elements: data,
+                        selectedId: null,
+                        timeline: createDefaultTimeline(),
+                        layerGroups: []
+                    };
+                }
+
+                return {
+                    elements: data.elements,
+                    selectedId: null,
+                    preset: data.preset ?? state.preset,
+                    timeline: data.timeline ? { ...createDefaultTimeline(), ...data.timeline, isPlaying: false } : createDefaultTimeline(),
+                    layerGroups: []
+                };
+            }),
 
             exportAnimationData: () => {
                 const state = get();

@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
 import { useAuth } from '../auth/AuthProvider';
-import { importJSONDialog } from '../utils/exporters';
 import ExportStage from './ExportStage';
+import ImportStage from './ImportStage';
 import AuthModal from './AuthModal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -29,6 +29,7 @@ export default function Topbar() {
   };
 
   const [isExportOpen, setExportOpen] = useState(false);
+  const [isImportOpen, setImportOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
 
@@ -62,7 +63,7 @@ export default function Topbar() {
               onChange={onPick}
             />
 
-            <Button variant="outline" onClick={() => importJSONDialog()}>
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
               Import Template
             </Button>
 
@@ -94,6 +95,12 @@ export default function Topbar() {
           </div>
         </div>
       </Card>
+
+      <ImportStage
+        open={isImportOpen}
+        onClose={() => setImportOpen(false)}
+        preset={preset}
+      />
 
       {/* Export modal */}
       <ExportStage

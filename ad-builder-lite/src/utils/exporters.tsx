@@ -1,5 +1,14 @@
 // utils/exporters.ts
-import type { AnyEl, TextEl, ImageEl, ButtonEl, CanvasPreset, TimelineState } from '../Types';
+import type {
+  AnyEl,
+  TextEl,
+  ImageEl,
+  ButtonEl,
+  CanvasPreset,
+  TimelineState,
+  AnimationTrack,
+  Keyframe,
+} from '../Types';
 //import { getAnimatedElement } from './animation';
 import { useEditorStore } from '../store/useEditorStore';
 import JSZip from 'jszip';
@@ -11,6 +20,20 @@ interface ExportData {
   timeline: TimelineState;
   preset: CanvasPreset;
 }
+
+export type ImportedTemplateData = {
+  elements: AnyEl[];
+  timeline?: TimelineState;
+  preset?: CanvasPreset;
+};
+
+export type ParsedTemplateImport = {
+  data: ImportedTemplateData;
+  isLegacy: boolean;
+  elementCount: number;
+  trackCount: number;
+};
+
 const DESIGN = { w: 970, h: 250 }; // canonical design space (matches CanvasStage)
 
 const sizes: Record<CanvasPreset, { w: number; h: number; meta: string; label: string }> = {
@@ -24,6 +47,146 @@ type ExportOptions = {
   title?: string;              // <title>
   backgroundColor?: string;    // banner background (default white)
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isCanvasPreset(value: unknown): value is CanvasPreset {
+  return value === 'desktop' || value === 'tablet' || value === 'mobile';
+}
+
+function isAnimationValue(value: unknown): value is Keyframe['value'] {
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (!isRecord(value)) return false;
+  return typeof value.x === 'number' && Number.isFinite(value.x) && typeof value.y === 'number' && Number.isFinite(value.y);
+}
+
+function sanitizeKeyframe(value: unknown): Keyframe | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.id !== 'string' || typeof value.elementId !== 'string' || typeof value.property !== 'string') {
+    return null;
+  }
+  if (typeof value.time !== 'number' || !Number.isFinite(value.time) || !isAnimationValue(value.value)) {
+    return null;
+  }
+
+  return {
+    id: value.id,
+    time: value.time,
+    elementId: value.elementId,
+    property: value.property as Keyframe['property'],
+    value: value.value,
+    easing: typeof value.easing === 'string' ? (value.easing as Keyframe['easing']) : undefined,
+  };
+}
+
+function sanitizeTrack(value: unknown): AnimationTrack | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.id !== 'string' || typeof value.elementId !== 'string' || !Array.isArray(value.keyframes)) {
+    return null;
+  }
+
+  const keyframes = value.keyframes
+    .map(sanitizeKeyframe)
+    .filter((keyframe): keyframe is Keyframe => keyframe !== null)
+    .sort((left, right) => left.time - right.time);
+
+  return {
+    id: value.id,
+    elementId: value.elementId,
+    keyframes,
+    visible: typeof value.visible === 'boolean' ? value.visible : true,
+    locked: typeof value.locked === 'boolean' ? value.locked : false,
+    expanded: typeof value.expanded === 'boolean' ? value.expanded : true,
+  };
+}
+
+function sanitizeTimeline(value: unknown): TimelineState | undefined {
+  if (!isRecord(value) || !Array.isArray(value.tracks)) return undefined;
+
+  return {
+    currentTime: typeof value.currentTime === 'number' && Number.isFinite(value.currentTime) ? value.currentTime : 0,
+    duration: typeof value.duration === 'number' && Number.isFinite(value.duration) ? Math.max(1, value.duration) : 10,
+    isPlaying: typeof value.isPlaying === 'boolean' ? value.isPlaying : false,
+    playbackSpeed: typeof value.playbackSpeed === 'number' && Number.isFinite(value.playbackSpeed) ? value.playbackSpeed : 1,
+    loop: typeof value.loop === 'boolean' ? value.loop : false,
+    tracks: value.tracks
+      .map(sanitizeTrack)
+      .filter((track): track is AnimationTrack => track !== null),
+  };
+}
+
+function isElementLike(value: unknown): value is AnyEl {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === 'string' &&
+    typeof value.type === 'string' &&
+    typeof value.x === 'number' &&
+    typeof value.y === 'number' &&
+    typeof value.width === 'number' &&
+    typeof value.height === 'number'
+  );
+}
+
+function validateElements(value: unknown): AnyEl[] {
+  if (!Array.isArray(value) || !value.every(isElementLike)) {
+    throw new Error('Template JSON must contain a valid elements array.');
+  }
+
+  return value as AnyEl[];
+}
+
+export function normalizeImportedTemplate(input: unknown): ParsedTemplateImport {
+  if (Array.isArray(input)) {
+    const elements = validateElements(input);
+
+    return {
+      data: { elements },
+      isLegacy: true,
+      elementCount: elements.length,
+      trackCount: 0,
+    };
+  }
+
+  if (!isRecord(input)) {
+    throw new Error('Template JSON must be an element array or an object with an elements field.');
+  }
+
+  const elements = validateElements(input.elements);
+  const timeline = sanitizeTimeline(input.timeline);
+
+  if ('timeline' in input && input.timeline != null && !timeline) {
+    throw new Error('Template timeline is malformed.');
+  }
+
+  if ('preset' in input && input.preset != null && !isCanvasPreset(input.preset)) {
+    throw new Error('Template preset is invalid.');
+  }
+
+  return {
+    data: {
+      elements,
+      timeline,
+      preset: isCanvasPreset(input.preset) ? input.preset : undefined,
+    },
+    isLegacy: false,
+    elementCount: elements.length,
+    trackCount: timeline?.tracks.length ?? 0,
+  };
+}
+
+export function parseImportedTemplateText(text: string): ParsedTemplateImport {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('Invalid JSON file.');
+  }
+
+  return normalizeImportedTemplate(parsed);
+}
 
 // ---------------- JSON exporters ----------------
 export function exportJSON(elements: AnyEl[]) {
@@ -40,12 +203,12 @@ export async function importJSONDialog() {
   input.onchange = async () => {
     const file = input.files?.[0];
     if (!file) return;
-    const text = await file.text();
+
     try {
-      const data = JSON.parse(text);
-      useEditorStore.getState().importJSON(data);
-    } catch {
-      alert('Invalid JSON file');
+      const parsed = parseImportedTemplateText(await file.text());
+      useEditorStore.getState().importJSON(parsed.data);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Invalid JSON file');
     }
   };
   input.click();
